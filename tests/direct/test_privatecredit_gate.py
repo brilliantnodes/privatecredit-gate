@@ -546,12 +546,19 @@ def test_prose_report_with_per_figure_scales(env):
 
 def test_brackets_and_minus_are_negative(env):
     ready(env)
-    r = run_test(env, 0, rep(ebitda="(1,234.5)", fin="−300", fin_label="Net finance income"))
+    r = run_test(env, 0, rep(ebitda="(1,234.5)", fin="300", fin_label="Net finance income"))
     assert r["kind"] == "READ"
-    assert r["figures"]["ltm_ebitda"] == "-1234000" and r["figures"]["ltm_net_finance_costs"] == "-300000"
+    # EBITDA is rounded down (against the borrower); net finance income of 300 is a negative cost
+    assert r["figures"]["ltm_ebitda"] == "-1235000" and r["figures"]["ltm_net_finance_costs"] == "-300000"
     a = r["assessment"]
     assert a["leverage_ok"] is False and a["cover_ok"] is True and a["band"] == 4  # EBITDA negative: top band
     assert a["leverage_text"].startswith("n/a") and a["cover_text"].startswith("n/a")
+
+
+def test_negative_income_on_an_income_line_is_a_cost(env):
+    ready(env)
+    r = run_test(env, 0, rep(fin="−4,000", fin_label="Net finance income"))
+    assert r["figures"]["ltm_net_finance_costs"] == "4000000" and r["assessment"]["cover_ok"] is False
 
 
 def test_currency_code_around_a_figure_is_ignored(env):
@@ -603,7 +610,8 @@ def test_to_units_is_exact_and_toward_zero(mod):
     assert mod._to_units("0.009", 10**9, "EUR") == 9000000
     assert mod._to_units("12.4", 10**6, "EUR") == 12400000
     assert mod._to_units("(1,234.5678)", 1000, "EUR") == -1234567
-    assert mod._to_units(12.4, 10**6, "EUR") == 12400000  # JSON float: repr digits
+    assert mod._to_units(12.4, 10**6, "EUR") is None  # a float has lost the digits the model wrote
+    assert mod._to_units("12.4", 10**6, "EUR") == 12400000
     assert mod._to_units(7, 10**3, "EUR") == 7000
     assert mod._to_units(True, 1, "EUR") is None
     assert mod._to_units(float("nan"), 1, "EUR") is None
@@ -2004,7 +2012,11 @@ def test_dot_thousands_page_gives_no_reading(env):
     ("Net finance expense", "(2,000)", 2000000),
     ("Finance charges", "2,000", 2000000),
     ("Net finance income", "300", -300000),
-    ("Net finance income", "(300)", -300000),
+    ("Net finance income", "(300)", 300000),  # a negative income is a cost
+    ("Net finance (income)/costs", "(300)", -300000),
+    ("Net finance (income)/costs", "2,000", 2000000),
+    ("Finance income/(expense), net", "(2,000)", 2000000),
+    ("Net finance income (costs)", "(2,000)", 2000000),
 ])
 def test_finance_label_classified_by_code(env, label, value, cost):
     ready(env)
@@ -2075,3 +2087,80 @@ def test_prompt_asks_for_the_label_verbatim_and_flags_alternative_measures(mod):
     t = {"company_name": NAME, "currency": "EUR", "first_period_end": E0, "period_seconds": P}
     p = mod._prompt(t, 0, "page")
     assert "copied exactly as printed" in p and "reported and adjusted EBITDA" in p and "debt with and without leases" in p
+
+
+# ------------------------------------------------------------- third review fixes (16 Nov)
+
+
+@pytest.mark.parametrize("label", [
+    "LTM net finance costs (income statement)",
+    "Net finance costs (income tax excluded)",
+    "Interest income and expense",
+    "Net finance income/costs",
+])
+def test_ambiguous_combined_labels_give_no_reading(env, label):
+    ready(env)
+    r = run_test(env, 0, rep(fin="(4,000)", fin_label=label))
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FINANCE_LABEL", r
+
+
+def test_json_decimals_keep_their_digits(env, mod):
+    assert mod._parse_llm_json('{"v": 40.000, "w": 12.4}') == {"v": "40.000", "w": "12.4"}
+    ready(env)
+    body = json.loads(rep()[8:-4])
+    text = json.dumps(body)
+    for key, v in (("ltm_ebitda", "15.000"), ("total_debt", "40.000"), ("cash", "5.000"), ("ltm_net_finance_costs", "2.000")):
+        text = text.replace('"' + {"ltm_ebitda": "15,000", "total_debt": "40,000", "cash": "5,000", "ltm_net_finance_costs": "2,000"}[key] + '"', v, 1)
+    r = run_test(env, 0, "```json\n" + text + "\n```")
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FORMAT"  # 40.000 is refused, not read as 40
+
+
+def test_leading_zero_comma_groups_are_refused(mod):
+    for bad in ("0,450", "00,450", "(0,450)", "0,450 million"):
+        assert mod._to_units(bad, 10**6, "EUR") is None, bad
+    assert mod._to_units("1,450", 10**3, "EUR") == 1450000
+
+
+def test_decimal_comma_pages_give_no_reading(env):
+    ready(env)
+    body = json.loads(rep()[8:-4])
+    body["decimal_mark"] = ","
+    r = run_test(env, 0, "```json\n" + json.dumps(body) + "\n```")
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FORMAT"
+    body["decimal_mark"] = "."
+    assert run_test(env, 0, "```json\n" + json.dumps(body) + "\n```", at=end(0) + 90)["kind"] == "READ"
+
+
+@pytest.mark.parametrize("text,ok", [
+    ("EUR", True), ("EUR thousands", True), ("in EURm", True), ("EUR '000", True), ("Mio. EUR", True),
+    ("USD (EUR equivalent)", False), ("\u20ac", False), ("USD", False), ("", False), ("EURO", True),
+])
+def test_currency_must_be_the_only_code(mod, text, ok):
+    assert mod._currency_matches(text, "EUR") is ok
+
+
+def test_rounding_is_against_the_borrower(mod):
+    assert mod._round_figure("total_debt", 40000001, 1000) == 40001000
+    assert mod._round_figure("ltm_net_finance_costs", 2000001, 1000) == 2001000
+    assert mod._round_figure("ltm_net_finance_costs", -300500, 1000) == -300000  # income rounded toward a cost
+    assert mod._round_figure("ltm_ebitda", 15000999, 1000) == 15000000
+    assert mod._round_figure("ltm_ebitda", -1234500, 1000) == -1235000
+    assert mod._round_figure("cash", 4999999, 1000) == 4999000
+
+
+@pytest.mark.parametrize("fid", [1, None, ["1"], b"1"])
+def test_non_string_facility_id_refunds(env, fid):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    env.sent.clear()
+    env.vm.warp(iso(end(0) + 200))
+    env.vm.sender = env.bob
+    env.vm.value = G
+    out = env.c.pay(fid, 0)
+    env.vm.value = 0
+    assert out["ok"] is False and env.sent.to(env.borrower) == G
+
+
+def test_non_ascii_digit_inside_a_host_refunds(env):
+    out = create(env, report_base_url="https://1.\u00b2.3.4/r/")
+    assert out["ok"] is False and env.sent.to(env.lender) == COMMIT

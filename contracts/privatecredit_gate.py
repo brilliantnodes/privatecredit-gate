@@ -22,7 +22,8 @@ PrivateCreditGate puts that step on GenLayer and the rest in plain code:
      model COPIES four figures into a fixed form, exactly as printed, with
      their scale and LTM label: LTM EBITDA, LTM net finance costs, total debt
      and cash. Plain Python turns them into whole currency units with integer
-     arithmetic, rounds them toward zero to the facility's resolution and
+     arithmetic, rounds them to the facility's resolution against the
+     borrower (debt and finance costs up, EBITDA and cash down) and
      decides the outcome. Validators accept the leader's result only if it is
      EXACTLY equal to their own: the outcome kind, the reason code of a
      NO_READING and, for a reading, all four figures. So everything stored is
@@ -314,7 +315,7 @@ def _parse_number(s: str) -> tuple | None:
     if "," in s:
         whole, _, frac = s.partition(".")
         groups = whole.split(",")
-        if "," in frac or not (groups[0] != "" and all(c in DIGITS for c in groups[0]) and len(groups[0]) <= 3 and all(len(g) == 3 and all(c in DIGITS for c in g) for g in groups[1:])):
+        if "," in frac or not (groups[0] != "" and groups[0][0] != "0" and all(c in DIGITS for c in groups[0]) and len(groups[0]) <= 3 and all(len(g) == 3 and all(c in DIGITS for c in g) for g in groups[1:])):
             return None
         s = s.replace(",", "")
     return _exact(s)
@@ -348,18 +349,12 @@ def _strip_scale_word(s: str, mult: int) -> str | None:
 def _signed(value, currency: str, mult: int = 1) -> tuple | None:
     """A copied figure to (sign, (digits, scale)). Brackets or a minus sign
     mean negative. A leading or trailing currency code or symbol, and a
-    trailing scale word that matches the scale, are ignored. JSON numbers
-    arrive as int or float; repr gives back the digits the model wrote."""
-    if value is None or isinstance(value, bool):
+    trailing scale word that matches the scale, are ignored. JSON decimals
+    arrive as text (parse_float=str); a float is refused, because it has
+    lost the digits the model wrote (12.450 becomes 12.45)."""
+    if value is None or isinstance(value, bool) or isinstance(value, float):
         return None
-    if isinstance(value, int):
-        s = str(value)
-    elif isinstance(value, float):
-        if value != value or value in (float("inf"), float("-inf")):
-            return None
-        s = repr(value)
-    else:
-        s = str(value)
+    s = str(value)
     s = _strip_code(s.replace("−", "-"), currency)
     neg = False
     if s.startswith("(") and s.endswith(")"):
@@ -395,6 +390,16 @@ def _toward_zero(v: int, res: int) -> int:
     return (abs(v) // res) * res * (-1 if v < 0 else 1)
 
 
+ROUND_UP = ("ltm_net_finance_costs", "total_debt")  # rounded up; EBITDA and cash rounded down
+
+
+def _round_figure(key: str, v: int, res: int) -> int:
+    """Round a figure to the resolution against the borrower, so rounding
+    can never make a covenant pass: debt and finance costs up, EBITDA and
+    cash down."""
+    return _ceil_div(v, res) * res if key in ROUND_UP else (v // res) * res
+
+
 def _parse_llm_json(raw) -> dict:
     if isinstance(raw, dict):
         return raw
@@ -402,7 +407,7 @@ def _parse_llm_json(raw) -> dict:
     start, end = s.find("{"), s.rfind("}") + 1
     if start >= 0 and end > start:
         s = s[start:end]
-    out = json.loads(s)
+    out = json.loads(s, parse_float=str)  # a JSON number like 40.000 stays "40.000", so the ambiguity rules still apply
     if not isinstance(out, dict):
         raise ValueError("answer is not a JSON object")
     return out
@@ -569,12 +574,35 @@ def _terms_problem(t: dict, now: int) -> str:
 # ------------------------------------------------ turning a copy into a reading (pure)
 
 
+SCALE_TOKENS = ("MIO", "MLN", "MRD", "TSD", "THS", "BNS", "MNS", "MLD")
+
+
+def _currency_matches(text, code: str) -> bool:
+    """The page's currency text names the facility's code and no other
+    three-letter code ('EUR', 'EUR thousands', 'in EURm' pass; 'USD (EUR
+    equivalent)' and a symbol alone do not)."""
+    toks, cur = [], ""
+    for ch in str(text or "").upper():
+        if "A" <= ch <= "Z":
+            cur += ch
+        else:
+            if cur:
+                toks.append(cur)
+            cur = ""
+    if cur:
+        toks.append(cur)
+    if not any(x.startswith(code) for x in toks):
+        return False
+    return not any(len(x) == 3 and x != code and x not in SCALE_TOKENS for x in toks)
+
+
 def _interpret(t: dict, n: int, ans: dict) -> dict:
     """The copied form to an outcome. Pure Python, no web, no model.
 
     The model judges nothing that moves money: code checks the company name,
     the period, the currency, the LTM labels and the scales, converts every
-    figure with integers only and rounds it toward zero to the resolution. A
+    figure with integers only and rounds it to the resolution against the
+    borrower. A
     missing, unreadable or conflicting figure is never guessed (N2)."""
     kind = str(ans.get("page_kind", "")).strip().lower()
     name = _words(t["company_name"])
@@ -586,8 +614,10 @@ def _interpret(t: dict, n: int, ans: dict) -> dict:
         return {"kind": "NO_READING", "reason": "N3_NOT_FINAL"}
     if not _period_matches(ans.get("period_end_on_page"), _period_end(t, n)):
         return {"kind": "NO_READING", "reason": "N2_WRONG_PERIOD"}
-    if t["currency"] not in str(ans.get("currency_on_page", "")).upper().replace(" ", ""):
+    if not _currency_matches(ans.get("currency_on_page"), t["currency"]):
         return {"kind": "NO_READING", "reason": "N2_CURRENCY"}
+    if str(ans.get("decimal_mark", "")).strip() == ",":
+        return {"kind": "NO_READING", "reason": "N2_FORMAT"}  # decimal commas: '1,250' could be 1.25
     figs = ans.get("figures")
     if not isinstance(figs, dict):
         return {"kind": "NO_READING", "reason": "N2_FIGURE_MISSING"}
@@ -611,13 +641,15 @@ def _interpret(t: dict, n: int, ans: dict) -> dict:
             v = _finance_cost(f.get("line_label"), v)
             if v is None:
                 return {"kind": "NO_READING", "reason": "N2_FINANCE_LABEL"}
-        out[key] = _toward_zero(v, t["resolution"])
+        out[key] = _round_figure(key, v, t["resolution"])
     if out["total_debt"] < 0 or out["cash"] < 0:
         return {"kind": "NO_READING", "reason": "N2_FORMAT"}
     return {"kind": "READ", "figures": out}
 
 
 COST_WORDS = ("cost", "expense", "charge")
+COST_BRACKETS = ("(cost)", "(costs)", "(expense)", "(expenses)", "(charge)", "(charges)")
+INCOME_BRACKETS = ("(income)", "(incomes)")
 
 
 def _finance_cost(label, v: int) -> int | None:
@@ -626,21 +658,24 @@ def _finance_cost(label, v: int) -> int | None:
     never the model:
       - a label naming only costs, expense or charges: a cost, whatever its
         brackets (reports print expenses in brackets);
-      - a label naming only income: income;
-      - a label naming both takes its sign from its own bracket convention:
-        'net finance income/(costs)' means a bracketed figure is a cost,
-        'net finance costs/(income)' means a bracketed figure is income;
-      - anything else: None (no reading)."""
-    lab = _words(label)
+      - a label naming only income: income as printed, so a negative income
+        is a cost;
+      - a label naming both must put exactly one of them, as a whole word,
+        in brackets, and takes its sign from that convention: 'net finance
+        income/(costs)' means a bracketed figure is a cost, 'net finance
+        (income)/costs' means a bracketed figure is income;
+      - anything else (including 'costs (income statement)'): None, no
+        reading."""
+    lab = _words(label).replace("( ", "(").replace(" )", ")")
     has_cost = any(w in lab for w in COST_WORDS)
     has_income = "income" in lab
     if has_cost and not has_income:
         return abs(v)
     if has_income and not has_cost:
-        return -abs(v)
+        return -v
     if has_cost and has_income:
-        cost_bracketed = any("(" + w in lab for w in COST_WORDS)
-        income_bracketed = "(income" in lab
+        cost_bracketed = any(w in lab for w in COST_BRACKETS)
+        income_bracketed = any(w in lab for w in INCOME_BRACKETS)
         if cost_bracketed and not income_bracketed:
             return -v
         if income_bracketed and not cost_bracketed:
@@ -800,6 +835,7 @@ Fill in:
 - "period_end_on_page": the end of the period the figures cover, exactly as the page states it, written as "YYYY-MM-DD HH:MM" (UTC) if the page gives a time, or "YYYY-MM-DD" if it gives only a date; "" if the page does not say.
 - "currency_on_page": the currency the figures are stated in, as the page writes it (for example "EUR"), or "".
 - "marked_draft": "yes" if the page says these figures are draft, preliminary, estimated or subject to change; otherwise "no".
+- "decimal_mark": "." if the page's figures use a dot as the decimal point (for example 12.5), "," if they use a comma (for example 12,5), "none" if no figure has decimals.
 - "figures": an object with exactly these four keys: "ltm_ebitda", "ltm_net_finance_costs", "total_debt", "cash". Each is an object {{"value": "...", "scale": "...", "ltm_labelled": "yes" | "no", "conflicting": "yes" | "no", "line_label": "..."}} for the TEST PERIOD:
   - "value": the figure exactly as printed, as a string, keeping its digits, commas, decimal point and any brackets or minus sign (for example "12,450" or "(1,230.5)"); "" if the page does not show it. Never compute, add up or estimate a figure.
   - "scale": "units", "thousands", "millions" or "billions", as the page states for this figure (in a table heading such as "EUR thousands", or in the sentence that gives it, such as "EUR 12.4 million"); "not_stated" if the page does not say.
@@ -809,7 +845,7 @@ Fill in:
   "ltm_net_finance_costs" is net interest and other finance costs, net of finance income. "total_debt" is total borrowings. "cash" is cash and cash equivalents.
 
 Respond with JSON only:
-{{"page_kind": "...", "company_name_on_page": "...", "period_end_on_page": "...", "currency_on_page": "...", "marked_draft": "yes" | "no", "figures": {{"ltm_ebitda": {{...}}, "ltm_net_finance_costs": {{...}}, "total_debt": {{...}}, "cash": {{...}}}}}}"""
+{{"page_kind": "...", "company_name_on_page": "...", "period_end_on_page": "...", "currency_on_page": "...", "marked_draft": "yes" | "no", "decimal_mark": "." | "," | "none", "figures": {{"ltm_ebitda": {{...}}, "ltm_net_finance_costs": {{...}}, "total_debt": {{...}}, "cash": {{...}}}}}}"""
 
 
 def _fetch(url: str) -> str:
@@ -1302,7 +1338,7 @@ class PrivateCreditGate(gl.Contract):
 
     def _start_payable(self, facility_id: str) -> tuple:
         """As _start, but an unknown facility refunds instead of reverting."""
-        if facility_id not in self.facilities:
+        if not isinstance(facility_id, str) or facility_id not in self.facilities:
             return None
         return self._start(facility_id)
 
@@ -1769,10 +1805,10 @@ class PrivateCreditGate(gl.Contract):
     def get_rules(self) -> dict:
         """The rules every facility is held to, so anyone can audit one."""
         return {
-            "agreement": "exact on everything stored: validators accept the leader's test only if the outcome kind, the reason code of a NO_READING and, for a READ, all four figures (LTM EBITDA, LTM net finance costs, total debt, cash in whole currency units after rounding toward zero to the resolution) are equal to their own",
+            "agreement": "exact on everything stored: validators accept the leader's test only if the outcome kind, the reason code of a NO_READING and, for a READ, all four figures (LTM EBITDA, LTM net finance costs, total debt, cash in whole currency units after rounding to the resolution) are equal to their own",
             "official_reading": "a period's first READ inside its report window; NOT_PUBLISHED and NO_READING bind nothing; no READ by the window close means the report is missing",
             "report_address": "frozen per period at creation: report_base_url + period-{n}.html",
-            "figures": "copied exactly as printed with their scale, LTM label and line label; brackets or a minus sign mean negative, except that net finance costs follow the line label as classified by code (costs, expense or charges: a cost whatever its brackets; income: net finance income; both, such as 'income/(costs)': the label's own bracket convention; anything else: no reading); '12.450', '6,28' and apostrophe separators are ambiguous and refused; code converts with integers only",
+            "figures": "copied exactly as printed with their scale, LTM label and line label; brackets or a minus sign mean negative, except that net finance costs follow the line label as classified by code (costs, expense or charges: a cost whatever its brackets; income: net finance income; both, such as 'income/(costs)': the label's own bracket convention; anything else: no reading); '12.450', '6,28', '0,450', apostrophe separators and pages with decimal commas are ambiguous and refused; JSON decimals are kept as text; code converts with integers only; figures are rounded to the resolution against the borrower (debt and finance costs up, EBITDA and cash down)",
             "checks": "company name present, period end matches to the minute (a date alone only for periods ending at midnight UTC), currency code shown, EBITDA and finance costs labelled LTM, every scale stated, no figure missing, marked draft, shown with different values or shown in more than one version (such as reported and adjusted), debt and cash not negative, total debt at least this facility's principal at the period end (N2_DEBT_BELOW_DRAWN otherwise)",
             "covenants": "leverage passes if EBITDA > 0 and (debt - cash - cure) x 100 <= max_leverage_x100 x EBITDA; interest cover passes if net finance costs <= 0 or EBITDA x 100 >= min_cover_x100 x net finance costs; minimum cash passes if cash >= min_cash",
             "margin": "band from the uncured leverage, upper edges inclusive; EBITDA not positive: top band; applies from the window close; a missing report applies the top band",
