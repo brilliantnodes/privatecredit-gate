@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PrivateCreditGate: a covenant-gated credit facility on GenLayer</title>
+<meta name="description" content="Validators read the borrower's published compliance report; plain code applies the facility agreement. Fictional demo, test GEN only.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23143d33'/%3E%3Cpath d='M9 20l5 5 9-15' stroke='%23e4c66b' stroke-width='3.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <script type="module" crossorigin src="./assets/index-BcCh6F0r.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/genlayer-Cfg8olpj.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-MTuEweRi.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-in">
+    <a class="brand" href="./">PrivateCreditGate</a>
+    <nav class="nets" id="nets" aria-label="Network"></nav>
+    <a class="gh" id="repo-link" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>A credit facility whose covenants test themselves.</h1>
+    <p class="lede">In private credit, every quarter someone at the lender reads the borrower's compliance report and keys the numbers in by hand. Errors, delays and arguments over <em>what the report says</em> all happen at that step. Here, GenLayer validators each read the borrower's own published report, copy four figures into a fixed form, and plain code applies the facility agreement. Money moves only on figures every accepting validator copied exactly the same.</p>
+    <p class="note" id="net-note"></p>
+  </section>
+
+  <section class="how">
+    <ol class="steps4">
+      <li><strong>Offer and accept.</strong> The lender deposits the commitment; every term is frozen, including one report address per period. The borrower accepts by funding a debt-service reserve.</li>
+      <li><strong>Test.</strong> After each period end anyone runs the covenant test. Each validator reads the page and copies LTM EBITDA, LTM net finance costs, total debt and cash, exactly as printed.</li>
+      <li><strong>Decide in code.</strong> Integers only: leverage, interest cover and minimum cash by cross-multiplication, the margin band, the draw stop, cures, waivers and events of default.</li>
+      <li><strong>Set dates.</strong> Margins, deadlines and default interest fall on fixed dates, never on who sends a transaction first.</li>
+    </ol>
+  </section>
+
+  <section id="demo">
+    <h2>Five live facilities</h2>
+    <p class="small">Fictional borrowers, real transactions on the selected network. Each card opens the facility with every period's reading, the events and the transactions.</p>
+    <div class="cards" id="cards"></div>
+    <form class="lookup" id="lookup">
+      <label>Open any facility by id <input id="lookup-id" inputmode="numeric" autocomplete="off" placeholder="e.g. 1"></label>
+      <button type="submit">Open</button>
+    </form>
+  </section>
+
+  <section id="fac" hidden>
+    <div class="fac-head">
+      <h2 id="fac-title"></h2>
+      <span class="badge" id="fac-status"></span>
+      <button class="ghost" id="fac-reload" type="button">Reload</button>
+    </div>
+    <p class="small" id="fac-asof"></p>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Money</h3>
+        <dl class="kv" id="fac-money"></dl>
+      </div>
+      <div class="panel">
+        <h3>Terms</h3>
+        <dl class="kv" id="fac-terms"></dl>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Covenant tests</h3>
+      <div class="table-wrap"><table class="cov" id="fac-periods"></table></div>
+      <p class="small">Figures are what validators agreed, in whole EUR after rounding against the borrower. Ratios are shown rounded against the borrower too (leverage up, cover down); every decision uses exact cross-multiplication.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Events of default and waivers</h3>
+        <ul class="plain" id="fac-events"></ul>
+      </div>
+      <div class="panel">
+        <h3>Transactions</h3>
+        <ul class="plain" id="fac-txs"></ul>
+      </div>
+    </div>
+    <div class="panel" id="fac-actions-panel" hidden>
+      <h3>Act on this facility</h3>
+      <div id="fac-actions"></div>
+    </div>
+    <div class="panel">
+      <h3>Timeline</h3>
+      <ol class="timeline" id="fac-history"></ol>
+    </div>
+  </section>
+
+  <section id="life" class="panel" hidden>
+    <h3 id="life-what"></h3>
+    <ol class="life" id="steps"></ol>
+    <p class="small" id="life-hash"></p>
+    <p id="life-note"></p>
+  </section>
+
+  <section id="try">
+    <h2>Run your own facility</h2>
+    <p class="small" id="try-intro">On Studio you can play both sides with free temporary accounts. Your facility's first period ends on the next whole hour (UTC) at least 20 minutes away; each period is 65 minutes, with a 30-minute report window and a 30-minute cure window after each period end. The report pages of two fictional borrowers are ready for every hourly slot.</p>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Lender</h3>
+        <p class="mono" id="lender-addr">No account</p>
+        <p class="small" id="lender-bal"></p>
+        <button type="button" data-temp="lender">Use a temporary account</button>
+        <button type="button" class="ghost" data-fund="lender">Get 100 test GEN</button>
+      </div>
+      <div class="panel">
+        <h3>Borrower</h3>
+        <p class="mono" id="borrower-addr">No account</p>
+        <p class="small" id="borrower-bal"></p>
+        <button type="button" data-temp="borrower">Use a temporary account</button>
+        <button type="button" class="ghost" data-fund="borrower">Get 100 test GEN</button>
+      </div>
+    </div>
+    <p class="error" id="acct-error" hidden></p>
+    <form class="panel" id="create">
+      <h3>Offer a facility (as the lender)</h3>
+      <label>Borrower <select id="c-borrower"></select></label>
+      <label>Commitment (GEN) <input id="c-commit" value="10" inputmode="decimal"></label>
+      <label>Largest single draw (GEN) <input id="c-cap" value="4" inputmode="decimal"></label>
+      <p class="small" id="c-schedule"></p>
+      <p class="small">Covenants: leverage at most 3.50x, interest cover at least 4.00x, cash at least EUR 2m. Margin grid: 2.50 / 3.25 / 4.00 / 5.00% over a 5% base by leverage band. Commitment fee 0.50%, default add-on 2%. 1 test GEN stands for EUR 1m. The day-count year is compressed to four periods so amounts are visible.</p>
+      <button type="submit" id="btn-create">Offer the facility</button>
+    </form>
+  </section>
+
+  <section id="rules" class="panel">
+    <h2>The rules, in brief</h2>
+    <ul class="rules">
+      <li><strong>Agreement is exact on everything stored:</strong> the outcome kind, the reason code of a no-reading, and all four figures. Only a READ is final; the first READ in a period's window is its official reading.</li>
+      <li><strong>The model copies; code decides.</strong> Company, period end to the minute, currency, LTM labels and scales are checked in code. Ambiguous figures (12.450, 6,28, a decimal comma, other time zones) are refused, never guessed.</li>
+      <li><strong>Finance costs</strong> take their sign from the line label, classified in code (reports print expenses in brackets).</li>
+      <li><strong>Draw stop:</strong> from each period end until that period has a compliant, cured or waived reading. The period-0 reading is the condition precedent.</li>
+      <li><strong>Margin</strong> from the leverage band at the window close; a missing report means the top band.</li>
+      <li><strong>Equity cure</strong> before the cure deadline: at most two, never consecutive; only the principal it prepays counts against net debt; it fixes leverage only.</li>
+      <li><strong>Events of default</strong> on fixed dates: E1 uncured breach, E2 missing report, E3 unpaid interest (remedied by payment), E4 principal unpaid after maturity. The lender may waive E1 to E3 and accelerate in default.</li>
+      <li><strong>Waterfall:</strong> fees, interest, then principal that is due or that the borrower chooses to prepay; any excess comes back. A refused payment always comes back.</li>
+    </ul>
+    <p class="small">Full rules, limits and disclosures: <a id="readme-link" target="_blank" rel="noopener noreferrer">README</a>. The contract's own <code>get_rules()</code> returns the same text on chain.</p>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>Test GEN only. Every company, figure and report is fictional. Not an offer of credit. Built on <a href="https://genlayer.com" target="_blank" rel="noopener noreferrer">GenLayer</a> by Brilliant Nodes. MIT licence.</p>
+  <p class="small" id="foot-contract"></p>
+</footer>
+</body>
+</html>
