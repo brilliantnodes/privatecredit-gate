@@ -77,7 +77,8 @@ MAX_MARGIN_BP = 5000
 MAX_BASE_BP = 5000
 MAX_DEFAULT_BP = 1000
 MAX_FEE_BP = 1000
-MAX_COVENANT_BP = 1000000  # 100.00x
+RATIO = 100  # leverage and cover are written in hundredths: 350 means 3.50x
+MAX_RATIO_X100 = 10000  # 100.00x
 MAX_CURES = 2
 MAX_FIGURE = 10**30
 MAX_UNITS_PER_GEN = 10**24
@@ -107,7 +108,7 @@ CODE_REASONS = ("N2_DEBT_BELOW_DRAWN",)
 EVENT_CODES = {
     "E1": "covenant breach not cured or waived by the cure deadline",
     "E2": "no official reading by the window close, not waived by the cure deadline",
-    "E3": "interest and fees due at a period end unpaid cure_seconds later",
+    "E3": "interest and fees due at a period end (from period 1) unpaid cure_seconds later",
     "E4": "principal unpaid cure_seconds after maturity",
 }
 
@@ -398,7 +399,7 @@ def _ratio_text(num: int, den: int) -> str:
 
 def _parse_grid(text: str) -> list | None:
     """'200:350,250:400,*:550' to [[200, 350], [250, 400], [None, 550]]:
-    leverage band upper edges in bp (inclusive) with their margin in bp. The
+    leverage band upper edges in hundredths of x (inclusive, 250 = 2.50x) with their margin in bp. The
     last band has no upper edge. Edges rise strictly; margins never fall."""
     parts = [p.strip() for p in str(text).split(",")]
     if not 1 <= len(parts) <= MAX_BANDS:
@@ -421,7 +422,7 @@ def _parse_grid(text: str) -> list | None:
             if upper == "" or any(c not in DIGITS for c in upper) or len(upper) > 7:
                 return None
             u = int(upper)
-            if u < 1 or u > MAX_COVENANT_BP or (out and u <= out[-1][0]):
+            if u < 1 or u > MAX_RATIO_X100 or (out and u <= out[-1][0]):
                 return None
         if out and m < out[-1][1]:
             return None
@@ -471,7 +472,8 @@ def _schedule(t: dict) -> list:
     for n in range(t["num_periods"]):
         e = _period_end(t, n)
         out.append((e, _ORDER["END"], "END", n))
-        out.append((e + t["cure_seconds"], _ORDER["DUE"], "DUE", n))
+        if n >= 1:  # payment dates: every period end after the opening test
+            out.append((e + t["cure_seconds"], _ORDER["DUE"], "DUE", n))
         out.append((_window_close(t, n), _ORDER["CLOSE"], "CLOSE", n))
         out.append((_cure_deadline(t, n), _ORDER["CURE_DEADLINE"], "CURE_DEADLINE", n))
     out.append((t["availability_end"], _ORDER["AVAILABILITY_END"], "AVAILABILITY_END", -1))
@@ -508,8 +510,8 @@ def _terms_problem(t: dict, now: int) -> str:
         return f"fee_bp must be 0 to {MAX_FEE_BP}"
     if not 0 <= t["default_bp"] <= MAX_DEFAULT_BP:
         return f"default_bp must be 0 to {MAX_DEFAULT_BP}"
-    if not 1 <= t["max_leverage_bp"] <= MAX_COVENANT_BP or not 1 <= t["min_cover_bp"] <= MAX_COVENANT_BP:
-        return f"max_leverage_bp and min_cover_bp must be 1 to {MAX_COVENANT_BP}"
+    if not 1 <= t["max_leverage_x100"] <= MAX_RATIO_X100 or not 1 <= t["min_cover_x100"] <= MAX_RATIO_X100:
+        return f"max_leverage_x100 and min_cover_x100 must be 1 to {MAX_RATIO_X100}"
     if not 0 <= t["min_cash"] <= MAX_FIGURE:
         return "min_cash must be 0 or more currency units"
     return ""
@@ -605,7 +607,7 @@ def _band(t: dict, net: int, ebitda: int) -> int:
     if ebitda <= 0:
         return _top(t)
     for i, (upper, _m) in enumerate(t["grid"][:-1]):
-        if net * BP <= upper * ebitda:
+        if net * RATIO <= upper * ebitda:
             return i
     return _top(t)
 
@@ -617,8 +619,8 @@ def _assess(t: dict, figs: dict, cure_units: int = 0) -> dict:
     debt, cash = figs["total_debt"], figs["cash"]
     net = debt - cash
     adj = net - cure_units
-    lev_ok = e > 0 and adj * BP <= t["max_leverage_bp"] * e
-    cover_ok = fc <= 0 or e * BP >= t["min_cover_bp"] * fc
+    lev_ok = e > 0 and adj * RATIO <= t["max_leverage_x100"] * e
+    cover_ok = fc <= 0 or e * RATIO >= t["min_cover_x100"] * fc
     cash_ok = cash >= t["min_cash"]
     band = _band(t, net, e)  # a cure fixes the covenant, not the price
     return {
@@ -649,7 +651,7 @@ def _cure_needed_units(t: dict, figs: dict) -> int:
     if e <= 0:
         return -1
     net = figs["total_debt"] - figs["cash"]
-    allowed = (t["max_leverage_bp"] * e) // BP  # largest net debt that passes
+    allowed = (t["max_leverage_x100"] * e) // RATIO  # largest net debt that passes
     return max(0, net - allowed)
 
 
@@ -1010,7 +1012,7 @@ def _terms_view(t: dict) -> dict:
     out = dict(t)
     for k in ("commitment", "tranche_cap", "units_per_gen", "resolution", "min_cash"):
         out[k] = _s(t[k])
-    out["grid"] = [{"band": i + 1, "upper_leverage_bp": u, "margin_bp": m} for i, (u, m) in enumerate(t["grid"])]
+    out["grid"] = [{"band": i + 1, "upper_leverage_x100": u, "margin_bp": m} for i, (u, m) in enumerate(t["grid"])]
     out["maturity"] = _maturity(t)
     out["dsra_required"] = _s(_dsra_required(t))
     out["report_urls"] = [_report_url(t, n) for n in range(t["num_periods"])]
@@ -1029,7 +1031,7 @@ def _view(f: Facility, t: dict, s: dict, as_of: int, pending: list) -> dict:
             "end": _period_end(t, n),
             "window_close": _window_close(t, n),
             "cure_deadline": _cure_deadline(t, n),
-            "interest_due_by": _period_end(t, n) + t["cure_seconds"],
+            "interest_due_by": _period_end(t, n) + t["cure_seconds"] if n >= 1 else None,
             "report_url": _report_url(t, n),
             "status": _period_status(t, s, n, as_of),
             "attempts": p["attempts"],
@@ -1182,8 +1184,8 @@ class PrivateCreditGate(gl.Contract):
         grid: str,
         fee_bp: int,
         default_bp: int,
-        max_leverage_bp: int,
-        min_cover_bp: int,
+        max_leverage_x100: int,
+        min_cover_x100: int,
         min_cash: int,
     ) -> dict:
         """The lender offers a facility and deposits the whole commitment
@@ -1208,7 +1210,7 @@ class PrivateCreditGate(gl.Contract):
             return self._refund(None, None, 0, [], "currency must be a three-letter code such as EUR")
         parsed = _parse_grid(grid)
         if parsed is None:
-            return self._refund(None, None, 0, [], f"grid must be 1 to {MAX_BANDS} bands like 200:350,250:400,*:550 (upper leverage bp:margin bp; edges rising, margins never falling, last band *)")
+            return self._refund(None, None, 0, [], f"grid must be 1 to {MAX_BANDS} bands like 200:350,250:400,*:550 (upper leverage x100:margin bp; edges rising, margins never falling, last band *)")
         try:
             t = {
                 "lender": lender,
@@ -1231,8 +1233,8 @@ class PrivateCreditGate(gl.Contract):
                 "grid": parsed,
                 "fee_bp": int(fee_bp),
                 "default_bp": int(default_bp),
-                "max_leverage_bp": int(max_leverage_bp),
-                "min_cover_bp": int(min_cover_bp),
+                "max_leverage_x100": int(max_leverage_x100),
+                "min_cover_x100": int(min_cover_x100),
                 "min_cash": int(min_cash),
             }
         except Exception:
@@ -1584,10 +1586,10 @@ class PrivateCreditGate(gl.Contract):
             "report_address": "frozen per period at creation: report_base_url + period-{n}.html",
             "figures": "copied exactly as printed with their scale and LTM label; brackets or a minus sign mean negative; net finance costs are a cost, so a negative figure is net finance income; code converts with integers only",
             "checks": "company name present, period end matches, currency code shown, EBITDA and finance costs labelled LTM, every scale stated, no figure missing, conflicting or marked draft, debt and cash not negative, total debt at least this facility's principal at the period end (N2_DEBT_BELOW_DRAWN otherwise)",
-            "covenants": "leverage passes if EBITDA > 0 and (debt - cash - cure) x 10000 <= max_leverage_bp x EBITDA; interest cover passes if net finance costs <= 0 or EBITDA x 10000 >= min_cover_bp x net finance costs; minimum cash passes if cash >= min_cash",
+            "covenants": "leverage passes if EBITDA > 0 and (debt - cash - cure) x 100 <= max_leverage_x100 x EBITDA; interest cover passes if net finance costs <= 0 or EBITDA x 100 >= min_cover_x100 x net finance costs; minimum cash passes if cash >= min_cash",
             "margin": "band from the uncured leverage, upper edges inclusive; EBITDA not positive: top band; applies from the window close; a missing report applies the top band",
             "draws": "status ACTIVE, before availability_end, at most the tranche cap and the undrawn amount; from each period end until that period has a compliant, cured or waived official reading, draws stop (the period-0 reading is the condition precedent); repaid amounts cannot be redrawn",
-            "interest": "principal x (base + margin [+ default add-on]) x seconds / (10000 x year_seconds), accrued exactly and rounded down once; commitment fee on the undrawn amount until the availability end; due at every period end",
+            "interest": "principal x (base + margin [+ default add-on]) x seconds / (10000 x year_seconds), accrued exactly and rounded down once; commitment fee on the undrawn amount until the availability end; due at every period end from period 1 (period 0 is the opening test)",
             "events_of_default": EVENT_CODES,
             "default_interest": "the add-on applies to the whole principal while any event of default is open, from its set date, and after acceleration",
             "cure": f"before window close + cure_seconds; at most {MAX_CURES}, never in consecutive periods; the amount applied through the waterfall is converted at units_per_gen and deducted from net debt for that test only; fixes the leverage test only",
