@@ -1575,3 +1575,19 @@ def test_validator_refuses_a_bad_reason_even_when_it_also_has_no_reading(env):
     assert env.vm.run_validator(leader_result={"kind": "NO_READING", "reason": "TRUST_ME"}) is False
     assert env.vm.run_validator(leader_result={"kind": "NO_READING", "reason": "N2_DEBT_BELOW_DRAWN"}) is False
     assert env.vm.run_validator(leader_result={"kind": "NO_READING", "reason": "N2_CONFLICT"}) is True
+
+
+def test_figures_that_binary_floats_get_wrong(env, mod):
+    # 4.1 x 10**6 in floating point is 4099999.9999999995: one unit short, a whole resolution step after rounding
+    assert mod._to_units("4.1", 10**6, "EUR") == 4100000
+    assert mod._to_units("2.01", 10**3, "EUR") == 2010
+    ready(env)
+    r = run_test(env, 0, rep(ebitda="4.1", scales={"ltm_ebitda": "millions"}, debt="8,000", cash="4,000"))
+    assert r["kind"] == "READ" and r["figures"]["ltm_ebitda"] == "4100000"
+
+
+def test_history_keeps_the_latest_150(mod):
+    s = {"history": []}
+    for i in range(170):
+        mod._log(s, i, "X")
+    assert len(s["history"]) == 150 and s["history"][0]["at"] == 20 and s["history"][-1]["at"] == 169
