@@ -1945,3 +1945,28 @@ def test_demo_stories_hold_under_the_contract_rules(env, mod):
     ng = res["northgate"][1]
     assert ng["leverage_ok"] and not ng["cover_ok"] and ng["cover_text"] == "3.11x"
     assert all(a["compliant"] for a in res["fenwick"])
+
+
+def test_currency_code_before_brackets(mod):
+    assert mod._to_units("EUR (1,000)", 1000, "EUR") == -1000000
+    assert mod._to_units("€(2.5)", 10**6, "EUR") == -2500000
+
+
+def test_nothing_is_logged_after_closing_at_a_shared_second(env):
+    # availability end (closing) and window close 1 fall on the same second: closing ends the steps
+    ready(env, fee_bp=0)
+    run_test(env, 0, rep())
+    tick(env, A + 1)
+    h = fac(env)["history"]
+    assert h[-1]["what"] == "CLOSED" and h[-1]["at"] == A
+
+
+def test_cure_refused_after_acceleration_before_the_deadline(env):
+    compliant0(env, max_leverage_x100=250, availability_end=M)
+    draw(env, 4 * G, end(0) + 100)
+    run_test(env, 1, rep(n=1, debt="45,000"))  # breach; interest left unpaid
+    tick(env, end(1) + K)  # E3
+    as_lender(env, "accelerate", at=end(1) + K + 10)
+    out = cure(env, 1, 3 * G, end(1) + K + 20)
+    assert end(1) + K + 20 < deadline(1)
+    assert out["ok"] is False and "no breach to cure" in out["error"]

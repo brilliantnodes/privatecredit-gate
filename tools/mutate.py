@@ -14,7 +14,12 @@ Left out on purpose (equivalent mutants, so no test can catch them):
   leader's figures with its own reading, which never has such values;
 - the second size cap in _to_units, which the first cap already covers;
 - the final money-adds-up check in _commit, a safety net that no correct
-  path can trip.
+  path can trip;
+- the closing call at the end of get_facility's projection: _advance
+  already closes after every step, and only payments or steps can make a
+  facility closable;
+- the leader's reason-code check: validators now compare the reason with
+  their own, which is always a valid code, so a bad code is refused anyway.
 """
 import os
 import subprocess
@@ -31,7 +36,6 @@ MUTANTS = [
     ("figures within 1 percent", 'return a["figures"] == b["figures"]', 'return all(abs(a["figures"][k] - b["figures"][k]) * 100 <= abs(b["figures"][k]) for k in FIGURES)'),
     ("kind not compared", 'if a["kind"] != b["kind"]:\n        return False\n    if a["kind"] == "READ":', 'if False:\n        return False\n    if a["kind"] == "READ":'),
     ("extra keys from the leader accepted", "sorted(figs.keys()) != sorted(FIGURES)", "not all(k in figs for k in FIGURES)"),
-    ("leader reason unchecked", 'if r.get("reason") not in NO_READING_REASONS:\n            raise ValueError("bad reason")', 'if False:\n            raise ValueError("bad reason")'),
     # --- interpretation of the copied form
     ("any company accepted", ' or name not in _words(ans.get("company_name_on_page")):', ":"),
     ("draft accepted", 'if _yes(ans.get("marked_draft")):', "if False:"),
@@ -168,7 +172,6 @@ MUTANTS = [
     ("time loop continues after closing", '        if s["state"] != "ACTIVE":\n            return pays\n    _accrue(t, s, now)', '        pass\n    _accrue(t, s, now)'),
     ("cure after acceleration", '    if s["state"] != "ACTIVE" or not 0 <= n < t["num_periods"]:\n        return "no breach to cure', '    if s["state"] not in ("ACTIVE", "ACCELERATED") or not 0 <= n < t["num_periods"]:\n        return "no breach to cure'),
     ("test after acceleration", 'if st not in ("ACTIVE", "BREACH", "DEFAULT"):', 'if st not in ("ACTIVE", "BREACH", "DEFAULT", "ACCELERATED"):'),
-    ("view skips closing", '            pending = _advance(t, s, at)\n            _maybe_close(t, s, at, pending)', '            pending = _advance(t, s, at)'),
     ("waiver covers remedied events", 'e["code"] in ("E1", "E2", "E3") and not e["waived_at"] and not e["remedied_at"]:', 'e["code"] in ("E1", "E2", "E3") and not e["waived_at"]:'),
     # --- terms and URLs
     ("grid margins may fall", "        if out and m < out[-1][1]:\n            return None", "        if False:\n            return None"),
