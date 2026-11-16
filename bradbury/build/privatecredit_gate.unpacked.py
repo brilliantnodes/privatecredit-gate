@@ -171,23 +171,13 @@ def _exact(s: str) -> tuple | None:
  s = s.strip().lower()
  if len(s) > 60:
   return None
- exp = 0
- if 'e' in s:
-  s, e = s.split('e', 1)
-  sign = -1 if e.startswith('-') else 1
-  e = e[1:] if e[:1] in ('+', '-') else e
-  if e == '' or len(e) > 3 or any((c not in DIGITS for c in e)):
-   return None
-  exp = sign * int(e)
  whole, dot, frac = s.partition('.')
  if '.' in frac or (whole == '' and frac == ''):
   return None
  if any((c not in DIGITS for c in whole + frac)):
   return None
  num = int((whole or '0') + frac)
- scale = len(frac) - exp
- if scale < 0:
-  num, scale = (num * 10 ** (-scale), 0)
+ scale = len(frac)
  if scale > 60:
   return None
  return (num, scale)
@@ -197,7 +187,7 @@ def _parse_number(s: str) -> tuple | None:
  if s == '':
   return None
  whole, dot, frac = s.partition('.')
- if dot and ',' not in s and ('e' not in s.lower()) and (len(frac) == 3) and all((c in DIGITS for c in frac)) and (whole not in ('', '0')):
+ if dot and ',' not in s and (len(frac) == 3) and all((c in DIGITS for c in frac)) and (whole not in ('', '0')):
   return None
  if ',' in s:
   whole, _, frac = s.partition('.')
@@ -246,24 +236,28 @@ def _signed(value, currency: str, mult: int=1) -> tuple | None:
   return None
  return (-1 if neg else 1, v)
 
-def _to_units(value, mult: int, currency: str) -> int | None:
+def _to_exact(value, mult: int, currency: str) -> tuple | None:
  sv = _signed(value, currency, mult)
  if sv is None:
   return None
  sign, (num, scale) = sv
- if num > MAX_FIGURE * 10 ** scale:
+ if num * mult > MAX_FIGURE * 10 ** scale:
   return None
- units = num * mult // 10 ** scale
- if units > MAX_FIGURE:
+ return (sign * num * mult, 10 ** scale)
+
+def _to_units(value, mult: int, currency: str) -> int | None:
+ ex = _to_exact(value, mult, currency)
+ if ex is None:
   return None
- return sign * units
+ n, d = ex
+ return abs(n) // d * (-1 if n < 0 else 1)
 
 def _toward_zero(v: int, res: int) -> int:
  return abs(v) // res * res * (-1 if v < 0 else 1)
 ROUND_UP = ('ltm_net_finance_costs', 'total_debt')
 
-def _round_figure(key: str, v: int, res: int) -> int:
- return _ceil_div(v, res) * res if key in ROUND_UP else v // res * res
+def _round_figure(key: str, v: int, res: int, d: int=1) -> int:
+ return _ceil_div(v, d * res) * res if key in ROUND_UP else v // (d * res) * res
 
 def _parse_llm_json(raw) -> dict:
  if isinstance(raw, dict):
@@ -400,11 +394,16 @@ def _terms_problem(t: dict, now: int) -> str:
  if not 0 <= t['min_cash'] <= MAX_FIGURE:
   return 'min_cash must be 0 or more currency units'
  return ''
-SCALE_TOKENS = ('MIO', 'MLN', 'MRD', 'TSD', 'THS', 'BNS', 'MNS', 'MLD')
+ISO_CODES = ('EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CNY', 'CAD', 'AUD', 'NZD', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'RON', 'BGN', 'TRY', 'RUB', 'INR', 'BRL', 'MXN', 'ZAR', 'SGD', 'HKD', 'KRW', 'AED', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR', 'ILS', 'EGP', 'THB', 'MYR', 'IDR', 'PHP', 'TWD', 'ARS', 'CLP', 'COP', 'PEN', 'NGN', 'KES', 'UAH', 'ISK', 'VND')
+SYMBOLS = ('$', '£', '¥', '€', '₹', '₩', '₽', '₺', '₦', '₪', '₫', '฿', '₣', '₱')
 
 def _currency_matches(text, code: str) -> bool:
+ raw = str(text or '')
+ own = CURRENCY_SYMBOLS.get(code, '')
+ if any((sym in raw and sym != own for sym in SYMBOLS)):
+  return False
  toks, cur = ([], '')
- for ch in str(text or '').upper():
+ for ch in raw.upper():
   if 'A' <= ch <= 'Z':
    cur += ch
   else:
@@ -413,9 +412,17 @@ def _currency_matches(text, code: str) -> bool:
    cur = ''
  if cur:
   toks.append(cur)
- if not any((x.startswith(code) for x in toks)):
+ allowed = {code, code + 'M', code + 'K', code + 'MN', code + 'MM', code + 'BN'}
+ if code == 'EUR':
+  allowed |= {'EURO', 'EUROS'}
+ if not any((x in allowed for x in toks)):
   return False
- return not any((len(x) == 3 and x != code and (x not in SCALE_TOKENS) for x in toks))
+ for x in toks:
+  if x in allowed:
+   continue
+  if x.startswith(code) or (x in ISO_CODES and x != code):
+   return False
+ return True
 
 def _interpret(t: dict, n: int, ans: dict) -> dict:
  kind = str(ans.get('page_kind', '')).strip().lower()
@@ -430,7 +437,7 @@ def _interpret(t: dict, n: int, ans: dict) -> dict:
   return {'kind': 'NO_READING', 'reason': 'N2_WRONG_PERIOD'}
  if not _currency_matches(ans.get('currency_on_page'), t['currency']):
   return {'kind': 'NO_READING', 'reason': 'N2_CURRENCY'}
- if str(ans.get('decimal_mark', '')).strip() == ',':
+ if str(ans.get('decimal_mark', '')).strip().lower() not in ('.', 'none'):
   return {'kind': 'NO_READING', 'reason': 'N2_FORMAT'}
  figs = ans.get('figures')
  if not isinstance(figs, dict):
@@ -447,36 +454,67 @@ def _interpret(t: dict, n: int, ans: dict) -> dict:
   mult = SCALES.get(str(f.get('scale', '')).strip().lower())
   if mult is None:
    return {'kind': 'NO_READING', 'reason': 'N2_UNITS_MISSING'}
-  v = _to_units(f.get('value'), mult, t['currency'])
-  if v is None:
+  ex = _to_exact(f.get('value'), mult, t['currency'])
+  if ex is None:
    return {'kind': 'NO_READING', 'reason': 'N2_FORMAT'}
+  v, d = ex
   if key == 'ltm_net_finance_costs':
    v = _finance_cost(f.get('line_label'), v)
    if v is None:
     return {'kind': 'NO_READING', 'reason': 'N2_FINANCE_LABEL'}
-  out[key] = _round_figure(key, v, t['resolution'])
+  out[key] = _round_figure(key, v, t['resolution'], d)
+  if abs(out[key]) > MAX_FIGURE:
+   return {'kind': 'NO_READING', 'reason': 'N2_FORMAT'}
  if out['total_debt'] < 0 or out['cash'] < 0:
   return {'kind': 'NO_READING', 'reason': 'N2_FORMAT'}
  return {'kind': 'READ', 'figures': out}
-COST_WORDS = ('cost', 'expense', 'charge')
-COST_BRACKETS = ('(cost)', '(costs)', '(expense)', '(expenses)', '(charge)', '(charges)')
-INCOME_BRACKETS = ('(income)', '(incomes)')
+COST_SIDE = ('cost', 'costs', 'expense', 'expenses', 'charge', 'charges', 'payable')
+INCOME_SIDE = ('income', 'incomes', 'credit', 'credits', 'benefit', 'benefits', 'gain', 'gains', 'receivable', 'revenue', 'revenues')
+
+def _label_words(text: str) -> list:
+ out, cur = ([], '')
+ for ch in text:
+  if 'a' <= ch <= 'z':
+   cur += ch
+  else:
+   if cur:
+    out.append(cur)
+   cur = ''
+ if cur:
+  out.append(cur)
+ return out
 
 def _finance_cost(label, v: int) -> int | None:
- lab = _words(label).replace('( ', '(').replace(' )', ')')
- has_cost = any((w in lab for w in COST_WORDS))
- has_income = 'income' in lab
- if has_cost and (not has_income):
-  return abs(v)
- if has_income and (not has_cost):
+ lab = _words(label)
+ brackets, depth, cur = ([], 0, '')
+ for ch in lab:
+  if ch == '(':
+   depth, cur = (depth + 1, '')
+  elif ch == ')' and depth > 0:
+   depth -= 1
+   brackets.append(cur.strip())
+  elif depth > 0:
+   cur += ch
+ bracket_income = any((x in INCOME_SIDE for x in brackets))
+ bracket_cost = any((x in COST_SIDE for x in brackets))
+ if bracket_income and bracket_cost:
+  return None
+ if bracket_income:
+  return v
+ if bracket_cost:
   return -v
- if has_cost and has_income:
-  cost_bracketed = any((w in lab for w in COST_BRACKETS))
-  income_bracketed = any((w in lab for w in INCOME_BRACKETS))
-  if cost_bracketed and (not income_bracketed):
-   return -v
-  if income_bracketed and (not cost_bracketed):
-   return v
+ words = _label_words(lab)
+ has_cost = any((w in COST_SIDE for w in words))
+ has_income = any((w in INCOME_SIDE for w in words))
+ net = 'net' in words
+ if '/' in lab or (has_cost and has_income):
+  return None
+ if has_cost:
+  if net and v < 0:
+   return None
+  return abs(v)
+ if has_income and net:
+  return -v
  return None
 
 def _check_outcome(r, t: dict) -> dict:
@@ -575,10 +613,33 @@ def _fetch(url: str) -> str:
  except Exception:
   return ''
 
+def _decimal_comma_page(page: str) -> bool:
+ runs, cur = ([], '')
+ for ch in page + ' ':
+  if ch in DIGITS or (ch in '.,' and cur != ''):
+   cur += ch
+  else:
+   if cur:
+    runs.append(cur.rstrip('.,'))
+   cur = ''
+ for r in runs:
+  if ',' in r:
+   tail = r.rsplit(',', 1)[1]
+   if 1 <= len(tail) <= 2 and all((c in DIGITS for c in tail)):
+    return True
+   if '.' in r and r.index('.') < r.rindex(','):
+    return True
+  parts = r.split('.')
+  if len(parts) >= 3 and all((len(x) == 3 and all((c in DIGITS for c in x)) for x in parts[1:])):
+   return True
+ return False
+
 def _read(t: dict, n: int) -> dict:
  page = _fetch(_report_url(t, n))
  if page.strip() == '':
   return {'kind': 'NO_READING', 'reason': 'N1_PAGE_DARK'}
+ if _decimal_comma_page(page):
+  return {'kind': 'NO_READING', 'reason': 'N2_FORMAT'}
  try:
   ans = _parse_llm_json(gl.nondet.exec_prompt(_prompt(t, n, page)))
  except Exception:
@@ -1258,4 +1319,4 @@ class PrivateCreditGate(gl.contract.Contract):
 
  @gl.public.view
  def get_rules(self) -> dict:
-  return {'agreement': "exact on everything stored: validators accept the leader's test only if the outcome kind, the reason code of a NO_READING and, for a READ, all four figures (LTM EBITDA, LTM net finance costs, total debt, cash in whole currency units after rounding to the resolution) are equal to their own", 'official_reading': "a period's first READ inside its report window; NOT_PUBLISHED and NO_READING bind nothing; no READ by the window close means the report is missing", 'report_address': 'frozen per period at creation: report_base_url + period-{n}.html', 'figures': "copied exactly as printed with their scale, LTM label and line label; brackets or a minus sign mean negative, except that net finance costs follow the line label as classified by code (costs, expense or charges: a cost whatever its brackets; income: net finance income; both, such as 'income/(costs)': the label's own bracket convention; anything else: no reading); '12.450', '6,28', '0,450', apostrophe separators and pages with decimal commas are ambiguous and refused; JSON decimals are kept as text; code converts with integers only; figures are rounded to the resolution against the borrower (debt and finance costs up, EBITDA and cash down)", 'checks': "company name present, period end matches to the minute (a date alone only for periods ending at midnight UTC), currency code shown, EBITDA and finance costs labelled LTM, every scale stated, no figure missing, marked draft, shown with different values or shown in more than one version (such as reported and adjusted), debt and cash not negative, total debt at least this facility's principal at the period end (N2_DEBT_BELOW_DRAWN otherwise)", 'covenants': 'leverage passes if EBITDA > 0 and (debt - cash - cure) x 100 <= max_leverage_x100 x EBITDA; interest cover passes if net finance costs <= 0 or EBITDA x 100 >= min_cover_x100 x net finance costs; minimum cash passes if cash >= min_cash', 'margin': 'band from the uncured leverage, upper edges inclusive; EBITDA not positive: top band; applies from the window close; a missing report applies the top band', 'draws': 'status ACTIVE, before availability_end, at most the tranche cap and the undrawn amount; from each period end until that period has a compliant, cured or waived official reading, draws stop (the period-0 reading after the first period end is the condition precedent); repaid amounts cannot be redrawn (term facility); the borrower may cancel the undrawn commitment', 'interest': 'principal x (base + margin [+ default add-on]) x seconds / (10000 x year_seconds), accrued exactly and rounded down once; commitment fee on the undrawn amount until the availability end; due at every period end from period 1 (period 0 is the opening test)', 'events_of_default': EVENT_CODES, 'default_interest': 'the add-on applies to the whole principal while any event of default is continuing (from its set date until it is waived or, for E3, remedied by payment), and after acceleration', 'cure': f'before window close + cure_seconds; at most {MAX_CURES}, never in consecutive periods; the GEN sent pays fees and interest owed first, then prepays exactly the principal the cure needs (the rest comes back); only that principal counts, converted at units_per_gen and deducted from net debt for that test only; fixes the leverage test only; the margin band follows the uncured leverage', 'waiver': "the lender may waive a period's breach or missing report and its E1, E2 or E3 events; E4 cannot be waived", 'waterfall': 'fees, then interest (default interest included), then principal that is due (all after acceleration or from maturity), plus any prepayment the borrower names; any excess back', 'dsra': "one period's interest on the whole commitment at the top band, funded at acceptance; held as cash collateral, applied only on acceleration; returned when the facility closes", 'closing': "when nothing is owed and nothing is left to draw (fully drawn, undrawn cancelled, or the availability end passed); after acceleration the lender may also close with a write-off, which ends this facility's record but not any legal claim", 'timing': "every money effect happens on a set date; the steps run at the start of every write with the transaction's timestamp, so the result does not depend on who calls or in what order", 'limits': f'{MIN_PERIODS}-{MAX_PERIODS} periods; times in whole minutes; report and cure windows at least {MIN_WINDOW_SECONDS} s; period longer than both together; up to {MAX_BANDS} margin bands; day-count year {MIN_YEAR_SECONDS}-{MAX_YEAR_SECONDS} s (365 days for ACT/365, 360 days for ACT/360)', 'kinds': list(KINDS), 'no_reading_reasons': list(NO_READING_REASONS) + list(CODE_REASONS), 'page_chars': PAGE_CHARS}
+  return {'agreement': "exact on everything stored: validators accept the leader's test only if the outcome kind, the reason code of a NO_READING and, for a READ, all four figures (LTM EBITDA, LTM net finance costs, total debt, cash in whole currency units after rounding to the resolution) are equal to their own", 'official_reading': "a period's first READ inside its report window; NOT_PUBLISHED and NO_READING bind nothing; no READ by the window close means the report is missing", 'report_address': 'frozen per period at creation: report_base_url + period-{n}.html', 'figures': "copied exactly as printed with their scale, LTM label and line label; brackets or a minus sign mean negative, except that net finance costs follow the line label as classified by code (costs, expense or charges: a cost whatever its brackets; income: net finance income; both, such as 'income/(costs)': the label's own bracket convention; anything else: no reading); '12.450', '6,28', '0,450', apostrophe separators, exponents and pages with decimal commas (scanned in code, and as reported by the model) are refused; residual risk: a decimal-comma page whose figures all look like dot-decimal or whole numbers; JSON decimals are kept as text; code converts with exact integers and rounds once, against the borrower (debt and finance costs up, EBITDA and cash down)", 'checks': "company name present, period end matches to the minute (a date alone only for periods ending at midnight UTC), currency code shown, EBITDA and finance costs labelled LTM, every scale stated, no figure missing, marked draft, shown with different values or shown in more than one version (such as reported and adjusted), debt and cash not negative, total debt at least this facility's principal at the period end (N2_DEBT_BELOW_DRAWN otherwise)", 'covenants': 'leverage passes if EBITDA > 0 and (debt - cash - cure) x 100 <= max_leverage_x100 x EBITDA; interest cover passes if net finance costs <= 0 or EBITDA x 100 >= min_cover_x100 x net finance costs; minimum cash passes if cash >= min_cash', 'margin': 'band from the uncured leverage, upper edges inclusive; EBITDA not positive: top band; applies from the window close; a missing report applies the top band', 'draws': 'status ACTIVE, before availability_end, at most the tranche cap and the undrawn amount; from each period end until that period has a compliant, cured or waived official reading, draws stop (the period-0 reading after the first period end is the condition precedent); repaid amounts cannot be redrawn (term facility); the borrower may cancel the undrawn commitment', 'interest': 'principal x (base + margin [+ default add-on]) x seconds / (10000 x year_seconds), accrued exactly and rounded down once; commitment fee on the undrawn amount until the availability end; due at every period end from period 1 (period 0 is the opening test)', 'events_of_default': EVENT_CODES, 'default_interest': 'the add-on applies to the whole principal while any event of default is continuing (from its set date until it is waived or, for E3, remedied by payment), and after acceleration', 'cure': f'before window close + cure_seconds; at most {MAX_CURES}, never in consecutive periods; the GEN sent pays fees and interest owed first, then prepays exactly the principal the cure needs (the rest comes back); only that principal counts, converted at units_per_gen and deducted from net debt for that test only; fixes the leverage test only; the margin band follows the uncured leverage', 'waiver': "the lender may waive a period's breach or missing report and its E1, E2 or E3 events; E4 cannot be waived", 'waterfall': 'fees, then interest (default interest included), then principal that is due (all after acceleration or from maturity), plus any prepayment the borrower names; any excess back', 'dsra': "one period's interest on the whole commitment at the top band, funded at acceptance; held as cash collateral, applied only on acceleration; returned when the facility closes", 'closing': "when nothing is owed and nothing is left to draw (fully drawn, undrawn cancelled, or the availability end passed); after acceleration the lender may also close with a write-off, which ends this facility's record but not any legal claim", 'timing': "every money effect happens on a set date; the steps run at the start of every write with the transaction's timestamp, so the result does not depend on who calls or in what order", 'limits': f'{MIN_PERIODS}-{MAX_PERIODS} periods; times in whole minutes; report and cure windows at least {MIN_WINDOW_SECONDS} s; period longer than both together; up to {MAX_BANDS} margin bands; day-count year {MIN_YEAR_SECONDS}-{MAX_YEAR_SECONDS} s (365 days for ACT/365, 360 days for ACT/360)', 'kinds': list(KINDS), 'no_reading_reasons': list(NO_READING_REASONS) + list(CODE_REASONS), 'page_chars': PAGE_CHARS}

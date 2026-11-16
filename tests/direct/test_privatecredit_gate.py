@@ -63,7 +63,7 @@ def hm(ts: int) -> str:
 
 def rep(ebitda="15,000", fin="2,000", debt="40,000", cash="5,000", n=0, scale="thousands", kind="compliance_report",
         name=NAME, currency="EUR", draft="no", ltm="yes", period=None, conflicting=(), missing=(), scales=None,
-        ltms=None, raw=None, fin_label="LTM net finance costs"):
+        ltms=None, raw=None, fin_label="LTM net finance costs", decimal_mark="."):
     """The model's answer for a report page (fenced, as models often answer)."""
     figs = {}
     for key, v in zip(FIG, (ebitda, fin, debt, cash)):
@@ -77,7 +77,7 @@ def rep(ebitda="15,000", fin="2,000", debt="40,000", cash="5,000", n=0, scale="t
             "line_label": fin_label if key == "ltm_net_finance_costs" else {"ltm_ebitda": "LTM EBITDA", "total_debt": "Total borrowings", "cash": "Cash and cash equivalents"}[key],
         }
     body = {"page_kind": kind, "company_name_on_page": name, "period_end_on_page": hm(end(n)) if period is None else period,
-            "currency_on_page": currency, "marked_draft": draft, "figures": figs}
+            "currency_on_page": currency, "marked_draft": draft, "decimal_mark": decimal_mark, "figures": figs}
     if raw is not None:
         body = raw
     return "```json\n" + json.dumps(body) + "\n```"
@@ -594,8 +594,7 @@ def test_report_must_show_at_least_the_debt_drawn_here(env):
 def test_exact_number_parsing(mod):
     assert mod._exact("6.28") == (628, 2)
     assert mod._exact(".5") == (5, 1)
-    assert mod._exact("1.5e3") == (1500, 0)
-    assert mod._exact("1e-2") == (1, 2)
+    assert mod._exact("1.5e3") is None and mod._exact("1e-2") is None and mod._exact("12.450e0") is None  # no exponents
     assert mod._exact("1" * 61) is None
     assert mod._exact("1.2.3") is None and mod._exact("") is None and mod._exact("e5") is None
     assert mod._exact("1e1234") is None
@@ -1624,9 +1623,16 @@ def test_history_keeps_the_latest_150(mod):
 def test_bracketed_finance_costs_are_still_costs(env):
     ready(env)
     # EBITDA 5m, costs printed (2,000): cover 2.50x, below 4.00x. Brackets are presentation on a costs line.
-    r = run_test(env, 0, rep(ebitda="5,000", fin="(2,000)", debt="20,000", cash="5,000"))
+    r = run_test(env, 0, rep(ebitda="5,000", fin="(2,000)", debt="20,000", cash="5,000", fin_label="LTM finance costs"))
     assert r["kind"] == "READ" and r["figures"]["ltm_net_finance_costs"] == "2000000"
     assert r["assessment"]["cover_ok"] is False and r["assessment"]["cover_text"] == "2.50x"
+
+
+def test_net_cost_line_printed_negative_is_refused(env):
+    # a NET cost line printed negative is ambiguous (US 'other expense (income)' blocks): refused
+    ready(env)
+    r = run_test(env, 0, rep(ebitda="5,000", fin="(2,000)", debt="20,000", cash="5,000"))
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FINANCE_LABEL"
 
 
 def test_finance_income_line_is_negative_and_unclear_label_is_no_reading(env):
@@ -2009,7 +2015,16 @@ def test_dot_thousands_page_gives_no_reading(env):
     ("Net finance income/(costs)", "500", -500000),
     ("Net finance costs/(income)", "(300)", -300000),
     ("Net finance costs/(income)", "2,000", 2000000),
-    ("Net finance expense", "(2,000)", 2000000),
+    ("Finance expense", "(2,000)", 2000000),
+    ("Net finance cost/(credit)", "(400)", -400000),
+    ("Net finance cost/(credit)", "1,200", 1200000),
+    ("Net interest expense/(benefit)", "(400)", -400000),
+    ("Net interest payable/(income)", "(400)", -400000),
+    ("Interest and other (income), net", "(400)", -400000),
+    ("Net finance (income)", "(400)", -400000),
+    ("Net finance (costs)/income", "(2,000)", 2000000),
+    ("Finance costs (net)", "2,000", 2000000),
+    ("Net finance costs (note 7)", "2,000", 2000000),
     ("Finance charges", "2,000", 2000000),
     ("Net finance income", "300", -300000),
     ("Net finance income", "(300)", 300000),  # a negative income is a cost
@@ -2097,6 +2112,11 @@ def test_prompt_asks_for_the_label_verbatim_and_flags_alternative_measures(mod):
     "Net finance costs (income tax excluded)",
     "Interest income and expense",
     "Net finance income/costs",
+    "Net finance expense",
+    "Interest expense, net",
+    "Finance income",
+    "Interest receivable and similar income",
+    "Net finance (income)/(costs)",
 ])
 def test_ambiguous_combined_labels_give_no_reading(env, label):
     ready(env)
@@ -2134,6 +2154,7 @@ def test_decimal_comma_pages_give_no_reading(env):
 @pytest.mark.parametrize("text,ok", [
     ("EUR", True), ("EUR thousands", True), ("in EURm", True), ("EUR '000", True), ("Mio. EUR", True),
     ("USD (EUR equivalent)", False), ("\u20ac", False), ("USD", False), ("", False), ("EURO", True),
+    ("USDEUR", False), ("TEUR", False),
 ])
 def test_currency_must_be_the_only_code(mod, text, ok):
     assert mod._currency_matches(text, "EUR") is ok
@@ -2164,3 +2185,58 @@ def test_non_string_facility_id_refunds(env, fid):
 def test_non_ascii_digit_inside_a_host_refunds(env):
     out = create(env, report_base_url="https://1.\u00b2.3.4/r/")
     assert out["ok"] is False and env.sent.to(env.lender) == COMMIT
+
+
+# ------------------------------------------------------------- fourth review fixes (16 Nov)
+
+
+def test_one_rounding_step_from_the_exact_figure(env):
+    ready(env)
+    # debt 52,500,000.40 units: rounded up to 52,501,000, so 3.50x exactly cannot pass by truncation
+    r = run_test(env, 0, rep(ebitda="15,000,000", fin="2,000,000", debt="52,500,000.40", cash="0", scale="units"))
+    assert r["figures"]["total_debt"] == "52501000"
+    assert r["figures"]["ltm_ebitda"] == "15000000"
+
+
+@pytest.mark.parametrize("text,ok", [
+    ("EUR / £", False), ("figures in EUR; £ equivalents in brackets", False), ("EURUSD", False), ("Eurodollar", False),
+    ("US dollars (European subsidiary)", False), ("All figures in EUR thousands", True), ("in thousands of euros", True),
+    ("EUR m", True), ("€000 / EUR", True), ("EUR'000", True), ("Tsd. EUR", True), ("CHF/EUR", False), ("GBP and EUR", False),
+])
+def test_currency_symbols_and_code_shaped_words(mod, text, ok):
+    assert mod._currency_matches(text, "EUR") is ok
+
+
+@pytest.mark.parametrize("mark,ok", [(".", True), ("none", True), ("NONE", True), (",", False), ("comma", False), ("", False), (None, False)])
+def test_decimal_mark_fails_closed(env, mark, ok):
+    ready(env)
+    body = json.loads(rep()[8:-4])
+    if mark is None:
+        del body["decimal_mark"]
+    else:
+        body["decimal_mark"] = mark
+    r = run_test(env, 0, "```json\n" + json.dumps(body) + "\n```")
+    assert (r["kind"] == "READ") is ok
+
+
+@pytest.mark.parametrize("page,flag", [
+    ("Total debt 45.000,5 EUR", True), ("EBITDA 12,5 Mio. EUR", True), ("Debt 1.234.567", True), ("Cover 3,34x", True),
+    ("EBITDA 18,400 and debt 38,600 (EUR thousands), 1.72x", False), ("Period ended: 2026-11-16 14:30 UTC", False),
+    ("EUR 11.6 million; 2.2 million.", False), ("Figures 1,250 and 3.5", False),
+])
+def test_page_scan_for_decimal_commas(mod, page, flag):
+    assert mod._decimal_comma_page(page) is flag
+
+
+def test_decimal_comma_page_gives_no_reading_whatever_the_model_says(env):
+    ready(env)
+    r = run_test(env, 0, rep(), page="Harbourline Logistics Ltd: EBITDA 12,5 Mio. EUR")
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FORMAT"
+
+
+def test_demo_pages_pass_the_decimal_comma_scan(env, mod):
+    mr = _pages()
+    for c in mr.CASES["cases"]:
+        for n, style in enumerate(c["styles"]):
+            html_ = mr.page(c, n, style, E0 + n * mr.CASES["terms"]["period_seconds"])
+            assert mod._decimal_comma_page(html_) is False, (c["slug"], n)

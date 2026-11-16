@@ -274,28 +274,19 @@ def _period_matches(text, end_ts: int) -> bool:
 
 
 def _exact(s: str) -> tuple | None:
-    """A plain decimal ('6.28', '.5', '1.5e3') to (digits, scale) meaning
-    digits / 10**scale, exactly. No floats."""
+    """A plain decimal ('6.28', '.5') to (digits, scale) meaning
+    digits / 10**scale, exactly. No floats, and no exponents: no report
+    prints them, and '12.450e0' would slip past the ambiguity rules."""
     s = s.strip().lower()
     if len(s) > 60:
         return None
-    exp = 0
-    if "e" in s:
-        s, e = s.split("e", 1)
-        sign = -1 if e.startswith("-") else 1
-        e = e[1:] if e[:1] in ("+", "-") else e
-        if e == "" or len(e) > 3 or any(c not in DIGITS for c in e):
-            return None
-        exp = sign * int(e)
     whole, dot, frac = s.partition(".")
     if "." in frac or (whole == "" and frac == ""):
         return None
     if any(c not in DIGITS for c in whole + frac):
         return None
     num = int((whole or "0") + frac)
-    scale = len(frac) - exp
-    if scale < 0:
-        num, scale = num * 10 ** (-scale), 0
+    scale = len(frac)
     if scale > 60:
         return None
     return num, scale
@@ -310,7 +301,7 @@ def _parse_number(s: str) -> tuple | None:
     if s == "":
         return None
     whole, dot, frac = s.partition(".")
-    if dot and "," not in s and "e" not in s.lower() and len(frac) == 3 and all(c in DIGITS for c in frac) and whole not in ("", "0"):
+    if dot and "," not in s and len(frac) == 3 and all(c in DIGITS for c in frac) and whole not in ("", "0"):
         return None  # '12.450' is 12,450 in much of Europe and 12.45 elsewhere: refused, never guessed
     if "," in s:
         whole, _, frac = s.partition(".")
@@ -371,18 +362,26 @@ def _signed(value, currency: str, mult: int = 1) -> tuple | None:
     return (-1 if neg else 1), v
 
 
-def _to_units(value, mult: int, currency: str) -> int | None:
-    """A copied figure and its scale to whole currency units, toward zero."""
+def _to_exact(value, mult: int, currency: str) -> tuple | None:
+    """A copied figure and its scale to an exact fraction of currency units,
+    (signed numerator, denominator), with no rounding yet."""
     sv = _signed(value, currency, mult)
     if sv is None:
         return None
     sign, (num, scale) = sv
-    if num > MAX_FIGURE * 10**scale:
+    if num * mult > MAX_FIGURE * 10**scale:
         return None
-    units = num * mult // 10**scale
-    if units > MAX_FIGURE:
+    return sign * num * mult, 10**scale
+
+
+def _to_units(value, mult: int, currency: str) -> int | None:
+    """A copied figure and its scale to whole currency units, toward zero
+    (for display and tests; readings round once, in _round_figure)."""
+    ex = _to_exact(value, mult, currency)
+    if ex is None:
         return None
-    return sign * units
+    n, d = ex
+    return (abs(n) // d) * (-1 if n < 0 else 1)
 
 
 def _toward_zero(v: int, res: int) -> int:
@@ -393,11 +392,11 @@ def _toward_zero(v: int, res: int) -> int:
 ROUND_UP = ("ltm_net_finance_costs", "total_debt")  # rounded up; EBITDA and cash rounded down
 
 
-def _round_figure(key: str, v: int, res: int) -> int:
-    """Round a figure to the resolution against the borrower, so rounding
-    can never make a covenant pass: debt and finance costs up, EBITDA and
-    cash down."""
-    return _ceil_div(v, res) * res if key in ROUND_UP else (v // res) * res
+def _round_figure(key: str, v: int, res: int, d: int = 1) -> int:
+    """Round the exact figure v / d to the resolution against the borrower,
+    in one step, so rounding can never make a covenant pass: debt and
+    finance costs up, EBITDA and cash down."""
+    return _ceil_div(v, d * res) * res if key in ROUND_UP else (v // (d * res)) * res
 
 
 def _parse_llm_json(raw) -> dict:
@@ -574,15 +573,25 @@ def _terms_problem(t: dict, now: int) -> str:
 # ------------------------------------------------ turning a copy into a reading (pure)
 
 
-SCALE_TOKENS = ("MIO", "MLN", "MRD", "TSD", "THS", "BNS", "MNS", "MLD")
+ISO_CODES = (
+    "EUR", "USD", "GBP", "JPY", "CHF", "CNY", "CAD", "AUD", "NZD", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "RON",
+    "BGN", "TRY", "RUB", "INR", "BRL", "MXN", "ZAR", "SGD", "HKD", "KRW", "AED", "SAR", "QAR", "KWD", "BHD", "OMR",
+    "ILS", "EGP", "THB", "MYR", "IDR", "PHP", "TWD", "ARS", "CLP", "COP", "PEN", "NGN", "KES", "UAH", "ISK", "VND",
+)
+SYMBOLS = ("$", "\u00a3", "\u00a5", "\u20ac", "\u20b9", "\u20a9", "\u20bd", "\u20ba", "\u20a6", "\u20aa", "\u20ab", "\u0e3f", "\u20a3", "\u20b1")
 
 
 def _currency_matches(text, code: str) -> bool:
-    """The page's currency text names the facility's code and no other
-    three-letter code ('EUR', 'EUR thousands', 'in EURm' pass; 'USD (EUR
-    equivalent)' and a symbol alone do not)."""
+    """The page's currency text names the facility's code (alone, with a
+    scale suffix such as EURm, or as 'euro' for EUR) and no other currency
+    code, symbol or code-shaped word ('USD (EUR equivalent)', 'EUR / \u00a3',
+    'EURUSD', 'Eurodollar' and a symbol alone are refused)."""
+    raw = str(text or "")
+    own = CURRENCY_SYMBOLS.get(code, "")
+    if any(sym in raw and sym != own for sym in SYMBOLS):
+        return False
     toks, cur = [], ""
-    for ch in str(text or "").upper():
+    for ch in raw.upper():
         if "A" <= ch <= "Z":
             cur += ch
         else:
@@ -591,9 +600,17 @@ def _currency_matches(text, code: str) -> bool:
             cur = ""
     if cur:
         toks.append(cur)
-    if not any(x.startswith(code) for x in toks):
+    allowed = {code, code + "M", code + "K", code + "MN", code + "MM", code + "BN"}
+    if code == "EUR":
+        allowed |= {"EURO", "EUROS"}
+    if not any(x in allowed for x in toks):
         return False
-    return not any(len(x) == 3 and x != code and x not in SCALE_TOKENS for x in toks)
+    for x in toks:
+        if x in allowed:
+            continue
+        if x.startswith(code) or (x in ISO_CODES and x != code):
+            return False
+    return True
 
 
 def _interpret(t: dict, n: int, ans: dict) -> dict:
@@ -616,8 +633,8 @@ def _interpret(t: dict, n: int, ans: dict) -> dict:
         return {"kind": "NO_READING", "reason": "N2_WRONG_PERIOD"}
     if not _currency_matches(ans.get("currency_on_page"), t["currency"]):
         return {"kind": "NO_READING", "reason": "N2_CURRENCY"}
-    if str(ans.get("decimal_mark", "")).strip() == ",":
-        return {"kind": "NO_READING", "reason": "N2_FORMAT"}  # decimal commas: '1,250' could be 1.25
+    if str(ans.get("decimal_mark", "")).strip().lower() not in (".", "none"):
+        return {"kind": "NO_READING", "reason": "N2_FORMAT"}  # only dot decimals: '1,250' could be 1.25
     figs = ans.get("figures")
     if not isinstance(figs, dict):
         return {"kind": "NO_READING", "reason": "N2_FIGURE_MISSING"}
@@ -633,53 +650,90 @@ def _interpret(t: dict, n: int, ans: dict) -> dict:
         mult = SCALES.get(str(f.get("scale", "")).strip().lower())
         if mult is None:
             return {"kind": "NO_READING", "reason": "N2_UNITS_MISSING"}
-        v = _to_units(f.get("value"), mult, t["currency"])
-        if v is None:
+        ex = _to_exact(f.get("value"), mult, t["currency"])
+        if ex is None:
             return {"kind": "NO_READING", "reason": "N2_FORMAT"}
+        v, d = ex
         if key == "ltm_net_finance_costs":
             # Reports print expenses in brackets, so the label, not the sign, says cost or income.
             v = _finance_cost(f.get("line_label"), v)
             if v is None:
                 return {"kind": "NO_READING", "reason": "N2_FINANCE_LABEL"}
-        out[key] = _round_figure(key, v, t["resolution"])
+        out[key] = _round_figure(key, v, t["resolution"], d)
+        if abs(out[key]) > MAX_FIGURE:
+            return {"kind": "NO_READING", "reason": "N2_FORMAT"}
     if out["total_debt"] < 0 or out["cash"] < 0:
         return {"kind": "NO_READING", "reason": "N2_FORMAT"}
     return {"kind": "READ", "figures": out}
 
 
-COST_WORDS = ("cost", "expense", "charge")
-COST_BRACKETS = ("(cost)", "(costs)", "(expense)", "(expenses)", "(charge)", "(charges)")
-INCOME_BRACKETS = ("(income)", "(incomes)")
+COST_SIDE = ("cost", "costs", "expense", "expenses", "charge", "charges", "payable")
+INCOME_SIDE = ("income", "incomes", "credit", "credits", "benefit", "benefits", "gain", "gains",
+               "receivable", "revenue", "revenues")
+
+
+def _label_words(text: str) -> list:
+    out, cur = [], ""
+    for ch in text:
+        if "a" <= ch <= "z":
+            cur += ch
+        else:
+            if cur:
+                out.append(cur)
+            cur = ""
+    if cur:
+        out.append(cur)
+    return out
 
 
 def _finance_cost(label, v: int) -> int | None:
     """The net finance cost (positive) or income (negative) from the line's
     label, copied verbatim, and the signed figure as printed. Code decides,
-    never the model:
-      - a label naming only costs, expense or charges: a cost, whatever its
-        brackets (reports print expenses in brackets);
-      - a label naming only income: income as printed, so a negative income
-        is a cost;
-      - a label naming both must put exactly one of them, as a whole word,
-        in brackets, and takes its sign from that convention: 'net finance
-        income/(costs)' means a bracketed figure is a cost, 'net finance
-        (income)/costs' means a bracketed figure is income;
-      - anything else (including 'costs (income statement)'): None, no
-        reading."""
-    lab = _words(label).replace("( ", "(").replace(" )", ")")
-    has_cost = any(w in lab for w in COST_WORDS)
-    has_income = "income" in lab
-    if has_cost and not has_income:
-        return abs(v)
-    if has_income and not has_cost:
+    never the model, in this order:
+      1. A bracketed side word sets the convention: '(income)', '(credit)',
+         '(benefit)', '(gain)' and the like mean a bracketed figure is
+         income; '(costs)', '(expense)', '(charges)' mean it is a cost
+         ('net finance cost/(credit)', 'net finance income/(costs)',
+         'net finance (income)'). Both kinds bracketed: no reading.
+      2. Otherwise a slash, or words from both sides: no reading.
+      3. Cost words only: a cost, whatever its brackets (reports print
+         expenses in brackets), except that a NET cost line printed
+         negative is ambiguous (US 'other expense (income)' blocks): no
+         reading.
+      4. Income words only: only a NET income line counts, as printed, so
+         a negative net income is a cost; a gross income line is no
+         reading.
+      5. Anything else: no reading."""
+    lab = _words(label)
+    brackets, depth, cur = [], 0, ""
+    for ch in lab:
+        if ch == "(":
+            depth, cur = depth + 1, ""
+        elif ch == ")" and depth > 0:
+            depth -= 1
+            brackets.append(cur.strip())
+        elif depth > 0:
+            cur += ch
+    bracket_income = any(x in INCOME_SIDE for x in brackets)
+    bracket_cost = any(x in COST_SIDE for x in brackets)
+    if bracket_income and bracket_cost:
+        return None
+    if bracket_income:
+        return v
+    if bracket_cost:
         return -v
-    if has_cost and has_income:
-        cost_bracketed = any(w in lab for w in COST_BRACKETS)
-        income_bracketed = any(w in lab for w in INCOME_BRACKETS)
-        if cost_bracketed and not income_bracketed:
-            return -v
-        if income_bracketed and not cost_bracketed:
-            return v
+    words = _label_words(lab)
+    has_cost = any(w in COST_SIDE for w in words)
+    has_income = any(w in INCOME_SIDE for w in words)
+    net = "net" in words
+    if "/" in lab or (has_cost and has_income):
+        return None
+    if has_cost:
+        if net and v < 0:
+            return None
+        return abs(v)
+    if has_income and net:
+        return -v
     return None
 
 
@@ -855,11 +909,39 @@ def _fetch(url: str) -> str:
         return ""
 
 
+def _decimal_comma_page(page: str) -> bool:
+    """True if the page's own numbers show decimal-comma notation: a comma
+    followed by one or two final digits ('12,5'), a dot-thousands number
+    with a comma decimal ('1.234,5'), or two or more dot-thousands groups
+    ('1.234.567'). Scanned in code on the page text, not left to the model."""
+    runs, cur = [], ""
+    for ch in page + " ":
+        if ch in DIGITS or (ch in ".," and cur != ""):
+            cur += ch
+        else:
+            if cur:
+                runs.append(cur.rstrip(".,"))
+            cur = ""
+    for r in runs:
+        if "," in r:
+            tail = r.rsplit(",", 1)[1]
+            if 1 <= len(tail) <= 2 and all(c in DIGITS for c in tail):
+                return True
+            if "." in r and r.index(".") < r.rindex(","):
+                return True
+        parts = r.split(".")
+        if len(parts) >= 3 and all(len(x) == 3 and all(c in DIGITS for c in x) for x in parts[1:]):
+            return True
+    return False
+
+
 def _read(t: dict, n: int) -> dict:
     """Runs inside a non-deterministic block on every node."""
     page = _fetch(_report_url(t, n))
     if page.strip() == "":
         return {"kind": "NO_READING", "reason": "N1_PAGE_DARK"}
+    if _decimal_comma_page(page):
+        return {"kind": "NO_READING", "reason": "N2_FORMAT"}
     try:
         ans = _parse_llm_json(gl.nondet.exec_prompt(_prompt(t, n, page)))
     except Exception:
@@ -1808,7 +1890,7 @@ class PrivateCreditGate(gl.Contract):
             "agreement": "exact on everything stored: validators accept the leader's test only if the outcome kind, the reason code of a NO_READING and, for a READ, all four figures (LTM EBITDA, LTM net finance costs, total debt, cash in whole currency units after rounding to the resolution) are equal to their own",
             "official_reading": "a period's first READ inside its report window; NOT_PUBLISHED and NO_READING bind nothing; no READ by the window close means the report is missing",
             "report_address": "frozen per period at creation: report_base_url + period-{n}.html",
-            "figures": "copied exactly as printed with their scale, LTM label and line label; brackets or a minus sign mean negative, except that net finance costs follow the line label as classified by code (costs, expense or charges: a cost whatever its brackets; income: net finance income; both, such as 'income/(costs)': the label's own bracket convention; anything else: no reading); '12.450', '6,28', '0,450', apostrophe separators and pages with decimal commas are ambiguous and refused; JSON decimals are kept as text; code converts with integers only; figures are rounded to the resolution against the borrower (debt and finance costs up, EBITDA and cash down)",
+            "figures": "copied exactly as printed with their scale, LTM label and line label; brackets or a minus sign mean negative, except that net finance costs follow the line label as classified by code (costs, expense or charges: a cost whatever its brackets; income: net finance income; both, such as 'income/(costs)': the label's own bracket convention; anything else: no reading); '12.450', '6,28', '0,450', apostrophe separators, exponents and pages with decimal commas (scanned in code, and as reported by the model) are refused; residual risk: a decimal-comma page whose figures all look like dot-decimal or whole numbers; JSON decimals are kept as text; code converts with exact integers and rounds once, against the borrower (debt and finance costs up, EBITDA and cash down)",
             "checks": "company name present, period end matches to the minute (a date alone only for periods ending at midnight UTC), currency code shown, EBITDA and finance costs labelled LTM, every scale stated, no figure missing, marked draft, shown with different values or shown in more than one version (such as reported and adjusted), debt and cash not negative, total debt at least this facility's principal at the period end (N2_DEBT_BELOW_DRAWN otherwise)",
             "covenants": "leverage passes if EBITDA > 0 and (debt - cash - cure) x 100 <= max_leverage_x100 x EBITDA; interest cover passes if net finance costs <= 0 or EBITDA x 100 >= min_cover_x100 x net finance costs; minimum cash passes if cash >= min_cash",
             "margin": "band from the uncured leverage, upper edges inclusive; EBITDA not positive: top band; applies from the window close; a missing report applies the top band",
