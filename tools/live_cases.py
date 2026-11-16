@@ -71,6 +71,9 @@ class Case:
         self.rec["steps"].append({"label": label, "fn": fn, "tx": tx, "status": r["status"], "result": res,
                                   "at": int(time.time())})
         log(self.slug, f"{label}: {r['status']} {json.dumps(res, default=str)[:300]}")
+        with LOCK:
+            RESULTS[self.slug] = self.rec
+            save()
         if expect is not None and not expect(res):
             raise RuntimeError(f"{label}: unexpected result {res}")
         return res

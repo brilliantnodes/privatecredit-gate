@@ -1,0 +1,179 @@
+{
+  "address": "0xd9622598107edAaF059A84Bb563bB2765655cA01",
+  "tag": "studio-1",
+  "e0": 1794851100,
+  "cases": {
+    "quarrystone": {
+      "case": "quarrystone",
+      "company": "Quarrystone Materials plc",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0xead92d806a61477a059b0e1ccd87d4cb9cf1c94f82266504c9a864f48a7132dd",
+          "status": "ACCEPTED",
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "3",
+            "ok": true
+          },
+          "at": 1794848565
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xab38e266d8d1e4c415cff8ac5a2fd462b03454cc05bbf4f45df53fdb50bcef04",
+          "status": "ACCEPTED",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794848575
+        }
+      ],
+      "id": "3",
+      "lender": "0xA71B4Ab455F8b6A4E63Cf72A17C1e6EFb149c40e",
+      "borrower": "0xA75FAB9f380aed38284904220049128138E44D20"
+    },
+    "harbourline": {
+      "case": "harbourline",
+      "company": "Harbourline Logistics Ltd",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x52753d3f9caa31ccd68c5746eedbbf198950326fd5e2c187ca58f7b6b5ee3bae",
+          "status": "ACCEPTED",
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "4",
+            "ok": true
+          },
+          "at": 1794848565
+        },
+        {
+          "label": "Accept with the wrong DSRA (refused, refunded)",
+          "fn": "accept",
+          "tx": "0x5885eda2c1e560c34646303e5fba5e17a907b8aec122f8eaa5ef7f9a07fba0e6",
+          "status": "ACCEPTED",
+          "result": {
+            "error": "send exactly the DSRA: 250000000000000000 wei",
+            "ok": false,
+            "refunded": "249999999999999999"
+          },
+          "at": 1794848584
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0x4a3b7d4ace90c387bf8f62acd1777dfc494e9c7e8079dddf470097a681833d11",
+          "status": "ACCEPTED",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794848602
+        }
+      ],
+      "id": "4",
+      "lender": "0x3D7a283E55175CfB39C6eFC841CB4Ea5423c92A8",
+      "borrower": "0xa64A8eb8AF2FB360DCc4ce21712e83Ac2C0b6DEE"
+    },
+    "fenwick": {
+      "case": "fenwick",
+      "company": "Fenwick Aerospace Components",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0xa5a420cf545620c32517c624c9a7476e7f1348aafec7ef7dd1833a935235eb1a",
+          "status": "ACCEPTED",
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "5",
+            "ok": true
+          },
+          "at": 1794848573
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xc7ab7a39c8d0be8a1f8fdb2f0398c9a00bad08d71f7f1286be6158350e26be2b",
+          "status": "ACCEPTED",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794848590
+        }
+      ],
+      "id": "5",
+      "lender": "0x65BE572eb2AB88dF272912ebb77cbC9cA63B01c3",
+      "borrower": "0x6B3c9F76275E4739cA5C33a5EA4aBf328Be4E952"
+    },
+    "northgate": {
+      "case": "northgate",
+      "company": "Northgate Retail Group",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x7bcb6d6e652259c69b24f1027c14af31278d997cc8f0c7a70f3e855a554bd50a",
+          "status": "ACCEPTED",
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "6",
+            "ok": true
+          },
+          "at": 1794848625
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0x66d814b8fe1822f01406e561c25b317592d42a60055bfb752c0e41e002c040fa",
+          "status": "ACCEPTED",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794848634
+        }
+      ],
+      "id": "6",
+      "lender": "0x87894Ab505812cAF9048e635DCc589Af77Fc4a57",
+      "borrower": "0x9D5a87aD4693A98f477ff369003e46904269cdFA"
+    },
+    "brightwater": {
+      "case": "brightwater",
+      "company": "Brightwater Foods SA",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0xe8300f23eb2a07a85a99b9026a590ab0295bc3b975208f3391becef7d13dafbc",
+          "status": "ACCEPTED",
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "7",
+            "ok": true
+          },
+          "at": 1794848639
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xf57289dd4739c13cfca6226ddeb8387633c867c5e169b81172d9e9ec480cc094",
+          "status": "ACCEPTED",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794848648
+        }
+      ],
+      "id": "7",
+      "lender": "0x3122648bBD6bbCB2593FD341Df96F911b0122279",
+      "borrower": "0x3298A1Fd64586D193C4E1B2492a5c263A3c43B47"
+    }
+  }
+}

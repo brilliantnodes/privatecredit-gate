@@ -8,8 +8,14 @@ export const NETWORKS = {
     name: "GenLayer Studio (studionet)",
     contract: "0xd9622598107edAaF059A84Bb563bB2765655cA01",
     explorer: "https://explorer-studio.genlayer.com",
-    // The five demo facilities run live on this contract (examples/live/studio-*.json).
-    examples: [],
+    // The five demo facilities run live on this contract (examples/live/studio-studio-1.json).
+    examples: [
+      { id: "4", slug: "harbourline", company: "Harbourline Logistics Ltd" },
+      { id: "3", slug: "quarrystone", company: "Quarrystone Materials plc" },
+      { id: "7", slug: "brightwater", company: "Brightwater Foods SA" },
+      { id: "6", slug: "northgate", company: "Northgate Retail Group" },
+      { id: "5", slug: "fenwick", company: "Fenwick Aerospace Components" },
+    ],
     txs: {},
   },
   bradbury: {
