@@ -123,7 +123,7 @@ PAGE_END = "=====PAGE END====="
 DIGITS = "0123456789"
 CURRENCY_SYMBOLS = {"EUR": "\u20ac", "USD": "$", "GBP": "\u00a3", "JPY": "\u00a5", "CHF": "CHF"}
 SCALE_WORDS = {
-    10**3: ("thousands", "thousand", "k", "'000", "000s"),
+    10**3: ("thousands", "thousand", "k"),
     10**6: ("millions", "million", "mn", "m", "mm"),
     10**9: ("billions", "billion", "bn"),
 }
@@ -156,8 +156,8 @@ def _is_private_host(host: str) -> bool:
         return True
     if host.endswith(PRIVATE_SUFFIXES):
         return True
-    if labels[-1].isdigit():
-        if len(labels) != 4 or not all(lab.isdigit() and str(int(lab)) == lab and int(lab) <= 255 for lab in labels):
+    if labels[-1] != "" and all(c in DIGITS for c in labels[-1]):
+        if len(labels) != 4 or not all(lab != "" and all(c in DIGITS for c in lab) and str(int(lab)) == lab and int(lab) <= 255 for lab in labels):
             return True
         a, b = int(labels[0]), int(labels[1])
         if a in (0, 10, 127) or a >= 224 or (a == 169 and b == 254) or (a == 172 and 16 <= b <= 31):
@@ -167,7 +167,7 @@ def _is_private_host(host: str) -> bool:
         if a == 192 and b == 0 and int(labels[2]) in (0, 2):
             return True
         return False
-    return not labels[-1][0].isalpha()
+    return not ("a" <= labels[-1][0] <= "z")
 
 
 def _url_problem(url: str) -> str:
@@ -227,11 +227,16 @@ def _clean_time_text(text) -> str:
 
 
 def _parse_minute(text) -> int | None:
-    """'2026-11-18 14:30' (also with T, seconds, Z or UTC) to unix seconds."""
+    """'2026-11-18 14:30' (also with T, ':00' seconds, Z or UTC) to unix
+    seconds. Any other time zone or offset, or seconds other than zero, is
+    refused rather than read as UTC."""
     if not isinstance(text, str):
         return None
     s = _clean_time_text(text)
     if len(s) < 16:
+        return None
+    rest = s[16:]
+    if rest not in ("", ":00") and not (rest.startswith(":00.") and rest[4:] != "" and all(c == "0" for c in rest[4:])):
         return None
     try:
         d = datetime.fromisoformat(s[:16] + ":00+00:00")
@@ -297,11 +302,15 @@ def _exact(s: str) -> tuple | None:
 
 def _parse_number(s: str) -> tuple | None:
     """'6.28', '1,234.5' or '12,345' to an exact (digits, scale). A comma
-    that is not a thousands separator ('6,28', '1.234,5') is ambiguous and
-    refused."""
+    that is not a thousands separator ('6,28', '1.234,5'), a lone dot before
+    exactly three digits ('12.450') and an apostrophe ('40'000') are
+    ambiguous and refused."""
     s = s.strip()
     if s == "":
         return None
+    whole, dot, frac = s.partition(".")
+    if dot and "," not in s and "e" not in s.lower() and len(frac) == 3 and all(c in DIGITS for c in frac) and whole not in ("", "0"):
+        return None  # '12.450' is 12,450 in much of Europe and 12.45 elsewhere: refused, never guessed
     if "," in s:
         whole, _, frac = s.partition(".")
         groups = whole.split(",")
@@ -599,17 +608,44 @@ def _interpret(t: dict, n: int, ans: dict) -> dict:
             return {"kind": "NO_READING", "reason": "N2_FORMAT"}
         if key == "ltm_net_finance_costs":
             # Reports print expenses in brackets, so the label, not the sign, says cost or income.
-            label = str(f.get("line_label", "")).strip().lower()
-            if label == "costs":
-                v = abs(v)
-            elif label == "income":
-                v = -abs(v)
-            else:
+            v = _finance_cost(f.get("line_label"), v)
+            if v is None:
                 return {"kind": "NO_READING", "reason": "N2_FINANCE_LABEL"}
         out[key] = _toward_zero(v, t["resolution"])
     if out["total_debt"] < 0 or out["cash"] < 0:
         return {"kind": "NO_READING", "reason": "N2_FORMAT"}
     return {"kind": "READ", "figures": out}
+
+
+COST_WORDS = ("cost", "expense", "charge")
+
+
+def _finance_cost(label, v: int) -> int | None:
+    """The net finance cost (positive) or income (negative) from the line's
+    label, copied verbatim, and the signed figure as printed. Code decides,
+    never the model:
+      - a label naming only costs, expense or charges: a cost, whatever its
+        brackets (reports print expenses in brackets);
+      - a label naming only income: income;
+      - a label naming both takes its sign from its own bracket convention:
+        'net finance income/(costs)' means a bracketed figure is a cost,
+        'net finance costs/(income)' means a bracketed figure is income;
+      - anything else: None (no reading)."""
+    lab = _words(label)
+    has_cost = any(w in lab for w in COST_WORDS)
+    has_income = "income" in lab
+    if has_cost and not has_income:
+        return abs(v)
+    if has_income and not has_cost:
+        return -abs(v)
+    if has_cost and has_income:
+        cost_bracketed = any("(" + w in lab for w in COST_WORDS)
+        income_bracketed = "(income" in lab
+        if cost_bracketed and not income_bracketed:
+            return -v
+        if income_bracketed and not cost_bracketed:
+            return v
+    return None
 
 
 def _check_outcome(r, t: dict) -> dict:
@@ -764,12 +800,12 @@ Fill in:
 - "period_end_on_page": the end of the period the figures cover, exactly as the page states it, written as "YYYY-MM-DD HH:MM" (UTC) if the page gives a time, or "YYYY-MM-DD" if it gives only a date; "" if the page does not say.
 - "currency_on_page": the currency the figures are stated in, as the page writes it (for example "EUR"), or "".
 - "marked_draft": "yes" if the page says these figures are draft, preliminary, estimated or subject to change; otherwise "no".
-- "figures": an object with exactly these four keys: "ltm_ebitda", "ltm_net_finance_costs", "total_debt", "cash". Each is an object {{"value": "...", "scale": "...", "ltm_labelled": "yes" | "no", "conflicting": "yes" | "no", "line_label": "costs" | "income" | "unclear"}} for the TEST PERIOD:
+- "figures": an object with exactly these four keys: "ltm_ebitda", "ltm_net_finance_costs", "total_debt", "cash". Each is an object {{"value": "...", "scale": "...", "ltm_labelled": "yes" | "no", "conflicting": "yes" | "no", "line_label": "..."}} for the TEST PERIOD:
   - "value": the figure exactly as printed, as a string, keeping its digits, commas, decimal point and any brackets or minus sign (for example "12,450" or "(1,230.5)"); "" if the page does not show it. Never compute, add up or estimate a figure.
   - "scale": "units", "thousands", "millions" or "billions", as the page states for this figure (in a table heading such as "EUR thousands", or in the sentence that gives it, such as "EUR 12.4 million"); "not_stated" if the page does not say.
   - "ltm_labelled": "yes" if the page labels this figure as covering the last twelve months (LTM, last twelve months, trailing twelve months or TTM); otherwise "no".
   - "conflicting": "yes" if the page shows more than one figure that could be this measure for the TEST PERIOD (for example reported and adjusted EBITDA, or debt with and without leases), or shows it more than once with different values; otherwise "no".
-  - "line_label": for "ltm_net_finance_costs" only: "costs" if the line's label calls it costs, expense or charges; "income" if the label calls it income; "unclear" otherwise. For the other three figures write "unclear".
+  - "line_label": the label of the line or sentence the figure comes from, copied exactly as printed, including any brackets or slash (for example "Net finance costs" or "Net finance income/(costs)").
   "ltm_net_finance_costs" is net interest and other finance costs, net of finance income. "total_debt" is total borrowings. "cash" is cash and cash equivalents.
 
 Respond with JSON only:
@@ -947,7 +983,10 @@ def _apply_step(t: dict, s: dict, ev: str, n: int, at: int, pays: list) -> None:
 
 def _remedy(s: dict, at: int) -> None:
     """An E3 is remedied once everything due at its date has been paid; it
-    then stops counting as a continuing event of default."""
+    then stops counting as a continuing event of default. After acceleration
+    nothing is remedied: the whole loan is due."""
+    if s["state"] != "ACTIVE":
+        return
     for e in s["events"]:
         if e["code"] == "E3" and not e["waived_at"] and not e["remedied_at"]:
             if s["paid_fee"] + s["paid_interest"] >= s["periods"][e["period"]]["due_through"]:
@@ -1436,7 +1475,10 @@ class PrivateCreditGate(gl.Contract):
             return self._refund(None, None, 0, [], "no such facility")
         f, t, s, now, held, pays = st
         value = int(gl.message.value)
-        prepay = int(prepay)
+        try:
+            prepay = int(prepay)
+        except Exception:
+            return self._refund(f, s, held, pays, "prepay must be a whole number of wei")
         if gl.message.sender_address.as_hex.lower() != f.borrower.lower():
             return self._refund(f, s, held, pays, "only the borrower can pay")
         if s["state"] not in ("ACTIVE", "ACCELERATED"):
@@ -1485,14 +1527,18 @@ class PrivateCreditGate(gl.Contract):
             return self._refund(None, None, 0, [], "no such facility")
         f, t, s, now, held, pays = st
         value = int(gl.message.value)
-        n = int(period)
+        try:
+            n = int(period)
+        except Exception:
+            return self._refund(f, s, held, pays, "period must be a whole number")
         if gl.message.sender_address.as_hex.lower() != f.borrower.lower():
             return self._refund(f, s, held, pays, "only the borrower can cure")
         problem = _cure_problem(t, s, n, now)
         if problem:
             return self._refund(f, s, held, pays, problem)
         p = s["periods"][n]
-        pf, pi, pp, excess = _waterfall(t, s, value, s["principal"])
+        need = _wei_for_units(t, _cure_needed_units(t, p["official"]["figures"]))
+        pf, pi, pp, excess = _waterfall(t, s, value, need)  # prepays what the cure needs; the rest comes back
         units = pp * t["units_per_gen"] // WEI  # only the principal prepaid counts against net debt
         a2 = _assess(t, p["official"]["figures"], units)
         if not a2["leverage_ok"]:
@@ -1684,7 +1730,8 @@ class PrivateCreditGate(gl.Contract):
             return {"period": n, "possible": False, "reason": problem}
         need = _cure_needed_units(t, s["periods"][n]["official"]["figures"])
         fee_owed, int_owed = _owed(t, s)
-        return {"period": n, "possible": True, "at": at, "units": _s(need), "currency": t["currency"],
+        return {"period": n, "possible": True, "at": at, "note": "amounts owed grow every second: quote for the time the cure will be sent; any surplus comes back",
+                "units": _s(need), "currency": t["currency"],
                 "owed_first": _s(fee_owed + int_owed), "principal_prepayment": _s(_wei_for_units(t, need)),
                 "wei": _s(_cure_quote_wei(t, s, n)), "deadline": _cure_deadline(t, n)}
 
@@ -1725,7 +1772,7 @@ class PrivateCreditGate(gl.Contract):
             "agreement": "exact on everything stored: validators accept the leader's test only if the outcome kind, the reason code of a NO_READING and, for a READ, all four figures (LTM EBITDA, LTM net finance costs, total debt, cash in whole currency units after rounding toward zero to the resolution) are equal to their own",
             "official_reading": "a period's first READ inside its report window; NOT_PUBLISHED and NO_READING bind nothing; no READ by the window close means the report is missing",
             "report_address": "frozen per period at creation: report_base_url + period-{n}.html",
-            "figures": "copied exactly as printed with their scale and LTM label; brackets or a minus sign mean negative, except that net finance costs follow the line's label (costs: a cost whatever its brackets; income: net finance income; anything else: no reading); code converts with integers only",
+            "figures": "copied exactly as printed with their scale, LTM label and line label; brackets or a minus sign mean negative, except that net finance costs follow the line label as classified by code (costs, expense or charges: a cost whatever its brackets; income: net finance income; both, such as 'income/(costs)': the label's own bracket convention; anything else: no reading); '12.450', '6,28' and apostrophe separators are ambiguous and refused; code converts with integers only",
             "checks": "company name present, period end matches to the minute (a date alone only for periods ending at midnight UTC), currency code shown, EBITDA and finance costs labelled LTM, every scale stated, no figure missing, marked draft, shown with different values or shown in more than one version (such as reported and adjusted), debt and cash not negative, total debt at least this facility's principal at the period end (N2_DEBT_BELOW_DRAWN otherwise)",
             "covenants": "leverage passes if EBITDA > 0 and (debt - cash - cure) x 100 <= max_leverage_x100 x EBITDA; interest cover passes if net finance costs <= 0 or EBITDA x 100 >= min_cover_x100 x net finance costs; minimum cash passes if cash >= min_cash",
             "margin": "band from the uncured leverage, upper edges inclusive; EBITDA not positive: top band; applies from the window close; a missing report applies the top band",
@@ -1733,7 +1780,7 @@ class PrivateCreditGate(gl.Contract):
             "interest": "principal x (base + margin [+ default add-on]) x seconds / (10000 x year_seconds), accrued exactly and rounded down once; commitment fee on the undrawn amount until the availability end; due at every period end from period 1 (period 0 is the opening test)",
             "events_of_default": EVENT_CODES,
             "default_interest": "the add-on applies to the whole principal while any event of default is continuing (from its set date until it is waived or, for E3, remedied by payment), and after acceleration",
-            "cure": f"before window close + cure_seconds; at most {MAX_CURES}, never in consecutive periods; the GEN sent goes through the waterfall and only the principal it prepays counts, converted at units_per_gen and deducted from net debt for that test only; fixes the leverage test only; the margin band follows the uncured leverage",
+            "cure": f"before window close + cure_seconds; at most {MAX_CURES}, never in consecutive periods; the GEN sent pays fees and interest owed first, then prepays exactly the principal the cure needs (the rest comes back); only that principal counts, converted at units_per_gen and deducted from net debt for that test only; fixes the leverage test only; the margin band follows the uncured leverage",
             "waiver": "the lender may waive a period's breach or missing report and its E1, E2 or E3 events; E4 cannot be waived",
             "waterfall": "fees, then interest (default interest included), then principal that is due (all after acceleration or from maturity), plus any prepayment the borrower names; any excess back",
             "dsra": "one period's interest on the whole commitment at the top band, funded at acceptance; held as cash collateral, applied only on acceleration; returned when the facility closes",

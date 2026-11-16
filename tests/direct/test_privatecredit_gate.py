@@ -63,7 +63,7 @@ def hm(ts: int) -> str:
 
 def rep(ebitda="15,000", fin="2,000", debt="40,000", cash="5,000", n=0, scale="thousands", kind="compliance_report",
         name=NAME, currency="EUR", draft="no", ltm="yes", period=None, conflicting=(), missing=(), scales=None,
-        ltms=None, raw=None, fin_label="costs"):
+        ltms=None, raw=None, fin_label="LTM net finance costs"):
     """The model's answer for a report page (fenced, as models often answer)."""
     figs = {}
     for key, v in zip(FIG, (ebitda, fin, debt, cash)):
@@ -74,7 +74,7 @@ def rep(ebitda="15,000", fin="2,000", debt="40,000", cash="5,000", n=0, scale="t
             "scale": (scales or {}).get(key, scale),
             "ltm_labelled": (ltms or {}).get(key, ltm),
             "conflicting": "yes" if key in conflicting else "no",
-            "line_label": fin_label if key == "ltm_net_finance_costs" else "unclear",
+            "line_label": fin_label if key == "ltm_net_finance_costs" else {"ltm_ebitda": "LTM EBITDA", "total_debt": "Total borrowings", "cash": "Cash and cash equivalents"}[key],
         }
     body = {"page_kind": kind, "company_name_on_page": name, "period_end_on_page": hm(end(n)) if period is None else period,
             "currency_on_page": currency, "marked_draft": draft, "figures": figs}
@@ -546,7 +546,7 @@ def test_prose_report_with_per_figure_scales(env):
 
 def test_brackets_and_minus_are_negative(env):
     ready(env)
-    r = run_test(env, 0, rep(ebitda="(1,234.5)", fin="−300", fin_label="income"))
+    r = run_test(env, 0, rep(ebitda="(1,234.5)", fin="−300", fin_label="Net finance income"))
     assert r["kind"] == "READ"
     assert r["figures"]["ltm_ebitda"] == "-1234000" and r["figures"]["ltm_net_finance_costs"] == "-300000"
     a = r["assessment"]
@@ -926,7 +926,8 @@ def test_cure_fixes_leverage_and_returns_to_active(env):
     assert int(out["applied"]) == 3 * G - int(out["excess"]) and int(out["units"]) == int(out["principal"]) * UPG // G
     assert int(out["principal"]) < int(out["applied"])  # fees and interest went first and do not count
     # the undrawn 6 GEN went back at the availability end (window close 1) just before the cure
-    assert env.sent.to(env.lender) == 6 * G + int(out["applied"]) and env.sent.to(env.borrower) == int(out["excess"]) == 0
+    assert int(out["principal"]) == 2500000 * G // UPG  # exactly what the cure needs
+    assert env.sent.to(env.lender) == 6 * G + int(out["applied"]) and env.sent.to(env.borrower) == int(out["excess"]) > 0
     f = fac(env)
     assert f["periods"][1]["status"] == "CURED" and f["cures_used"] == [1]
     assert f["periods"][1]["cure"]["assessment"]["leverage_ok"] is True
@@ -936,12 +937,12 @@ def test_cure_fixes_leverage_and_returns_to_active(env):
 
 def test_cure_counts_only_what_is_applied(env):
     breach1(env)
-    # 4 GEN principal outstanding; send 9: 4 GEN + interest applied, rest back
+    # 4 GEN principal outstanding; send 9: fees and interest, then the 2.5 GEN the cure needs; the rest back
     out = cure(env, 1, 9 * G, close_(1) + 60)
-    assert out["ok"] is True and int(out["excess"]) > 0
+    assert out["ok"] is True and out["principal"] == str(2500000 * G // UPG)
     assert int(out["applied"]) + int(out["excess"]) == 9 * G
-    assert fac(env)["status"] == "CLOSED"  # everything repaid by the cure
-    assert env.sent.to(env.borrower) == int(out["excess"]) + DSRA
+    assert fac(env)["status"] == "ACTIVE" and money(env, "principal") == 4 * G - 2500000 * G // UPG
+    assert env.sent.to(env.borrower) == int(out["excess"])
 
 
 def test_cure_too_small_is_refunded(env):
@@ -1622,11 +1623,11 @@ def test_bracketed_finance_costs_are_still_costs(env):
 
 def test_finance_income_line_is_negative_and_unclear_label_is_no_reading(env):
     ready(env)
-    r = run_test(env, 0, rep(fin="300", fin_label="income"))
+    r = run_test(env, 0, rep(fin="300", fin_label="LTM net finance income"))
     assert r["kind"] == "READ" and r["figures"]["ltm_net_finance_costs"] == "-300000" and r["assessment"]["cover_ok"] is True
 
 
-@pytest.mark.parametrize("label", ["unclear", "", "expense?", None])
+@pytest.mark.parametrize("label", ["unclear", "", "Net interest", "Finance items", None, "Net finance income/costs"])
 def test_finance_line_without_a_clear_label_gives_no_reading(env, label):
     ready(env)
     r = run_test(env, 0, rep(fin_label=label))
@@ -1792,8 +1793,7 @@ def test_date_only_needs_a_midnight_period_end(mod):
 def test_closed_facility_records_no_events_or_missing_flags(env, mod):
     ready(env, fee_bp=0)
     run_test(env, 0, rep())
-    tick(env, A + 1)
-    tick(env, deadline(N - 1) + 10)
+    tick(env, deadline(N - 1) + 10)  # one write that crosses the closing and every later step
     f = fac(env)
     assert f["status"] == "CLOSED" and f["events"] == []
     assert all(e["what"] != "WINDOW_CLOSE" or e["at"] <= A for e in f["history"])
@@ -1830,7 +1830,7 @@ def test_random_sequences_keep_the_books_exact(env):
         t = end(0) + 100
         while t < M + 2 * K:
             t += rnd.randint(30, 600)
-            act = rnd.choice(["draw", "pay", "prepay", "tick", "test", "waive", "accel", "cancel"])
+            act = rnd.choice(["draw", "pay", "prepay", "tick", "test", "waive", "accel", "cancel", "cure"])
             before = env.sent.total()
             try:
                 if act == "draw":
@@ -1852,6 +1852,10 @@ def test_random_sequences_keep_the_books_exact(env):
                     env.vm.warp(iso(t))
                     env.vm.sender = env.bob
                     env.c.cancel_undrawn("1")
+                elif act == "cure":
+                    v = rnd.randint(1, 8) * G // 2
+                    cure(env, rnd.randint(0, N - 1), v, t)
+                    received += v
             except Exception:
                 pass  # refused writes change nothing
             f = fac(env)
@@ -1970,3 +1974,104 @@ def test_cure_refused_after_acceleration_before_the_deadline(env):
     out = cure(env, 1, 3 * G, end(1) + K + 20)
     assert end(1) + K + 20 < deadline(1)
     assert out["ok"] is False and "no breach to cure" in out["error"]
+
+
+# ------------------------------------------------------------- second review fixes (16 Nov)
+
+
+def test_swiss_apostrophe_and_dot_thousands_are_refused(mod):
+    assert mod._to_units("40'000", 1000, "CHF") is None
+    assert mod._to_units("15'000", 1000, "EUR") is None
+    assert mod._to_units("12.450", 1000, "EUR") is None  # 12,450 in much of Europe, 12.45 elsewhere
+    assert mod._to_units("1.234", 10**6, "EUR") is None
+    assert mod._to_units("0.009", 10**9, "EUR") == 9000000
+    assert mod._to_units("12.45", 1000, "EUR") == 12450
+    assert mod._to_units("1,234.567", 10**6, "EUR") == 1234567000
+    assert mod._to_units("12.4500", 1000, "EUR") == 12450
+
+
+def test_dot_thousands_page_gives_no_reading(env):
+    ready(env)
+    r = run_test(env, 0, rep(ebitda="15.000", fin="850"))
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FORMAT"
+
+
+@pytest.mark.parametrize("label,value,cost", [
+    ("Net finance income/(costs)", "(2,000)", 2000000),
+    ("Net finance income/(costs)", "500", -500000),
+    ("Net finance costs/(income)", "(300)", -300000),
+    ("Net finance costs/(income)", "2,000", 2000000),
+    ("Net finance expense", "(2,000)", 2000000),
+    ("Finance charges", "2,000", 2000000),
+    ("Net finance income", "300", -300000),
+    ("Net finance income", "(300)", -300000),
+])
+def test_finance_label_classified_by_code(env, label, value, cost):
+    ready(env)
+    r = run_test(env, 0, rep(fin=value, fin_label=label))
+    assert r["kind"] == "READ" and r["figures"]["ltm_net_finance_costs"] == str(cost), r
+
+
+def test_period_end_refuses_other_time_zones_and_seconds(mod):
+    e = end(0)
+    assert mod._period_matches(hm(e) + ":00", e) and mod._period_matches(hm(e) + ":00.000Z", e)
+    assert mod._period_matches(hm(e) + " UTC", e)
+    for bad in (hm(e) + " CET", hm(e) + "+02:00", hm(e) + ":30", hm(e) + "-05:00", hm(e) + " GMT+1"):
+        assert mod._period_matches(bad, e) is False, bad
+
+
+def test_cure_prepays_only_what_it_needs(env):
+    breach1(env)  # needs EUR 2.5m = 2.5 GEN of principal
+    at = close_(1) + 60
+    q = env.c.quote_cure("1", 1, at)
+    out = cure(env, 1, int(q["wei"]) + 2 * G, at)  # a cushion of 2 GEN
+    assert out["ok"] is True and out["principal"] == q["principal_prepayment"] and out["excess"] == str(2 * G)
+    assert money(env, "principal") == 4 * G - int(q["principal_prepayment"])
+
+
+def test_no_remedy_after_acceleration(env):
+    compliant0(env, availability_end=M)
+    draw(env, 4 * G, end(0) + 100)
+    run_test(env, 1, rep(n=1))
+    tick(env, end(1) + K)  # E3
+    as_lender(env, "accelerate", at=end(1) + K + 10)
+    pay(env, 2 * G, end(1) + K + 20)
+    f = fac(env)
+    assert f["events"][0]["remedied_at"] == 0 and f["status"] in ("ACCELERATED", "CLOSED")
+
+
+def test_bad_arguments_to_payable_calls_refund(env):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    env.sent.clear()
+    out = pay(env, G, end(0) + 200, prepay="abc")
+    assert out["ok"] is False and "prepay" in out["error"] and env.sent.to(env.borrower) == G
+    env.sent.clear()
+    out = cure(env, "x", G, end(0) + 210)
+    assert out["ok"] is False and "period" in out["error"] and env.sent.to(env.borrower) == G
+    env.sent.clear()
+    out = create(env, report_base_url="https://1.2.3.\u00b2/r/")
+    assert out["ok"] is False and env.sent.to(env.lender) == COMMIT
+
+
+def test_bradbury_build_matches_the_source():
+    import ast
+    import importlib.util
+    root = os.path.join(os.path.dirname(__file__), "..", "..")
+    spec = importlib.util.spec_from_file_location("port_bradbury", os.path.join(root, "tools", "port_bradbury.py"))
+    port = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(port)
+    src = open(os.path.join(root, "contracts", "privatecredit_gate.py")).read()
+    body = port.renamed(src)
+    small = ast.unparse(port.strip_docstrings(ast.parse(body)))
+    small = "\n".join(re.sub(r"^((?:    )+)", lambda m: " " * (len(m.group(1)) // 4), line) for line in small.split("\n"))
+    built = open(os.path.join(root, "bradbury", "build", "privatecredit_gate.unpacked.py")).read()
+    assert built == port.HEADER + small + "\n", "rebuild: python tools/port_bradbury.py contracts/privatecredit_gate.py bradbury/build/privatecredit_gate.py --pack"
+    packed = open(os.path.join(root, "bradbury", "build", "privatecredit_gate.py")).read()
+    assert packed == port.HEADER + port.pack(small + "\n")  # the packed file is exactly the compressed build
+
+
+def test_prompt_asks_for_the_label_verbatim_and_flags_alternative_measures(mod):
+    t = {"company_name": NAME, "currency": "EUR", "first_period_end": E0, "period_seconds": P}
+    p = mod._prompt(t, 0, "page")
+    assert "copied exactly as printed" in p and "reported and adjusted EBITDA" in p and "debt with and without leases" in p
