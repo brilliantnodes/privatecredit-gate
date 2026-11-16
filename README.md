@@ -148,10 +148,39 @@ A payable call never reverts after money arrives: any refused request sends the 
   - the number parser, including the float trap, European formats, scale words, currencies, time zones and finance labels;
   - the demo pages and stories;
   - a check that the Bradbury build equals this source.
-- `PYTHONPATH=. python tools/mutate.py` breaks the contract on purpose, one change at a time, and checks that the tests catch every break. The equivalent mutants left out are listed in the tool.
+- `PYTHONPATH=. python tools/mutate.py` breaks the contract on purpose, one change at a time, and checks that the tests catch every break: 175 of 175 caught. The equivalent mutants left out are listed in the tool.
 - `genvm-lint check contracts/privatecredit_gate.py` runs the GenLayer linter.
 - The same test files pass on GenVM v0.6 against the Bradbury build (`bradbury/build/`, made by `tools/port_bradbury.py --pack`).
-- Three independent reviews, each by an agent wearing private-credit and GenLayer hats, preceded deployment. Every finding was fixed with a test.
+- Four independent reviews, each by an agent wearing private-credit and GenLayer hats, preceded deployment. Every finding was fixed with a test.
+
+## Live runs
+
+The five demo facilities ran end to end on both networks on 16 November 2026, from offer to close. Real validators read the report pages; nothing was mocked. Every transaction is listed on the site under each facility, and the full record of every step is in `examples/live/`.
+
+| | Studio | Bradbury testnet (Phase 2) |
+|---|---|---|
+| Contract | [`0xd962…cA01`](https://explorer-studio.genlayer.com/address/0xd9622598107edAaF059A84Bb563bB2765655cA01) | [`0x4170…C67B`](https://scan.bradbury.genlayer.com/address/0x4170241d2F9547EEe7FcD6fdfe6E061f5F87C67B) |
+| Facilities | #3 to #7 | #1 to #5 |
+| Amounts | commitment 10 GEN, 1 GEN = EUR 1m | commitment 1 GEN of real test GEN, 1 GEN = EUR 10m |
+| Record | `examples/live/studio-studio-1.json` (56 transactions) | `examples/live/bradbury-bradbury-1.json` (59 transactions) |
+| Report pages | `/reports/<company>/studio-1/` | `/reports/<company>/bradbury-1/` |
+
+Every reading (leverage, cover, band) and every outcome was the same on both networks:
+
+| Company | What happened | End |
+|---|---|---|
+| Harbourline | Three tranches; interest paid on each date; band 1 every period (leverage 1.73x, 1.79x, 1.67x) | Repaid in full; DSRA returned |
+| Quarrystone | Prose-only reports read correctly; leverage 3.01x moved the margin to band 3 at the period-1 window close | Repaid in full |
+| Brightwater | Period-1 leverage 3.75x breached 3.50x; the quoted cure of EUR 3.5m prepaid principal, and the surplus came back | Cured; repaid in full |
+| Northgate | Period-1 cover 3.11x breached 4.00x; the cure was refused as unable to fix cover; E1 fell at the deadline; accelerated; DSRA applied | Closed by the lender with a write-off |
+| Fenwick | Period 1 was first `NOT_PUBLISHED`, then published without units (`N2_UNITS_MISSING`); E2 fell at the deadline; the lender waived | Repaid in full |
+
+On Studio the runner also sent the refusals with value: a wrong DSRA amount and a cure that was too small. Each came straight back with the reason (`refunded` in the record).
+
+Three things happened on Bradbury that a test can't show:
+- **Early receipts.** Some receipts came back before the result was applied. The runner then tested again, and the repeat was refused because the period already had its official reading. That is the one-reading rule working on a live network. Each repeat is labelled on the site.
+- **A failed round.** In one round (Harbourline, period 1) the validators disagreed. Nothing was stored, and the next test read the period.
+- **Payouts.** Payouts (draws, refunds, DSRA returns) are external messages, so each write carried a fee budget for both parties.
 
 ## Reuse
 

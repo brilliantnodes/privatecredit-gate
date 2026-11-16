@@ -233,7 +233,11 @@ function render(f) {
     c1.append(el("strong", null, `#${p.period}`), el("br"), el("span", "small", `ends ${utc(p.end)}`), el("br"), el("span", "small", `window to ${utc(p.window_close)}`));
     tr.append(c1);
     const st = el("td");
-    st.append(el("span", `pill p-${p.status.toLowerCase()}`, PERIOD_STATUS[p.status] || p.status));
+    // A facility that closed before a period was read leaves that period untested:
+    // the contract reports the window state, the page says what it means.
+    const untested = f.status === "CLOSED" && ["TESTING", "MISSING", "UPCOMING"].includes(p.status) && !p.official;
+    if (untested) st.append(el("span", "pill p-upcoming", "Not tested: facility closed"));
+    else st.append(el("span", `pill p-${p.status.toLowerCase()}`, PERIOD_STATUS[p.status] || p.status));
     if (p.attempt_count) st.append(el("br"), el("span", "small", `${p.attempt_count} test${p.attempt_count > 1 ? "s" : ""}: ${p.attempts.map((a) => a.kind + (a.reason ? " " + a.reason : "")).join(", ")}`));
     if (p.cure) st.append(el("br"), el("span", "small", `cured ${utc(p.cure.at)}: ${gen(p.cure.principal)} principal prepaid`));
     tr.append(st);
