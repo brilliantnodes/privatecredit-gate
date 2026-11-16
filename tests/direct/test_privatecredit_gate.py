@@ -2240,3 +2240,20 @@ def test_demo_pages_pass_the_decimal_comma_scan(env, mod):
         for n, style in enumerate(c["styles"]):
             html_ = mr.page(c, n, style, E0 + n * mr.CASES["terms"]["period_seconds"])
             assert mod._decimal_comma_page(html_) is False, (c["slug"], n)
+
+
+# Three cases the mutation run showed were not yet pinned down.
+
+def test_currency_word_that_only_starts_with_the_code_is_refused(mod):
+    assert mod._currency_matches("Amounts in EUR thousands", "EUR") is True
+    assert mod._currency_matches("Amounts in EUR thousands (EURX basket)", "EUR") is False
+
+
+def test_page_scan_catches_dot_thousands_with_a_three_digit_comma_tail(mod):
+    assert mod._decimal_comma_page("Total debt 1.234,567 EUR") is True
+
+
+@pytest.mark.parametrize("label", ["Interest expense/other", "Finance costs / adjustments"])
+def test_slash_finance_label_with_one_side_word_gives_no_figure(mod, label):
+    assert mod._finance_cost(label, 2000) is None
+    assert mod._finance_cost(label.replace("/", " "), 2000) == 2000

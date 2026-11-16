@@ -1,0 +1,158 @@
+{
+  "address": "0x4170241d2F9547EEe7FcD6fdfe6E061f5F87C67B",
+  "tag": "bradbury-1",
+  "e0": 1794852000,
+  "cases": {
+    "harbourline": {
+      "case": "harbourline",
+      "company": "Harbourline Logistics Ltd",
+      "network": "bradbury",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x6e331b5c2d2f65eee46e15ad4f0baca3b5ee9f26901050224f13f702304de4bb",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "id": "1",
+            "dsra_required": "25000000000000000"
+          },
+          "at": 1794849086
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0x133c82b231779e4f75e7a4b4d5056f8d05838cfde6ead0443057040f32bad86b",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794849159
+        }
+      ],
+      "id": "1",
+      "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+      "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7"
+    },
+    "quarrystone": {
+      "case": "quarrystone",
+      "company": "Quarrystone Materials plc",
+      "network": "bradbury",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x20aeee55dcde428b66e27aacc85fb0de0c116ac98c4a388cd1bd76ad31a6c94b",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "id": "2",
+            "dsra_required": "25000000000000000"
+          },
+          "at": 1794849134
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xc337eef691c02d24b16593546f55f016578457e00af5d517d04c978ec4132358",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794849223
+        }
+      ],
+      "id": "2",
+      "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+      "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7"
+    },
+    "brightwater": {
+      "case": "brightwater",
+      "company": "Brightwater Foods SA",
+      "network": "bradbury",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0xb9ab173981c736f23643d321696c53e4c0146f6a7cc4abaffcc1bd5ba2e74f1b",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "id": "3",
+            "dsra_required": "25000000000000000"
+          },
+          "at": 1794849188
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xe7a6f9378932edbec651e1f00b443154a2e4a3f2c90dabfda816c1cabf7354df",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794849262
+        }
+      ],
+      "id": "3",
+      "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+      "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7"
+    },
+    "northgate": {
+      "case": "northgate",
+      "company": "Northgate Retail Group",
+      "network": "bradbury",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0xa10e9f3ed83a3762b8038549ebab11aec4652a820dc2ed006b51a4269bf2bda7",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "id": "4",
+            "dsra_required": "25000000000000000"
+          },
+          "at": 1794849240
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0x669732ae5a940970605e65ca22625dddb214f9bbb2a52329cf2d442f4cbd51c9",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794849344
+        }
+      ],
+      "id": "4",
+      "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+      "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7"
+    },
+    "fenwick": {
+      "case": "fenwick",
+      "company": "Fenwick Aerospace Components",
+      "network": "bradbury",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x79bd4a85f8119f07a7eff0e91dfcfc9cba014d6f82a570c243be44451e614efc",
+          "status": "MAJORITY_AGREE",
+          "result": {
+            "ok": true,
+            "id": "5",
+            "dsra_required": "25000000000000000"
+          },
+          "at": 1794849379
+        }
+      ]
+    }
+  }
+}

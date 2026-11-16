@@ -50,21 +50,54 @@ GEN = lambda tenths_of_commitment: COMMIT * tenths_of_commitment // 10  # noqa: 
 # both parties. The method's return value is read back from the contract's
 # views, not from the receipt.
 BB_JS = Path(os.environ.get("BRADBURY_JS", "/home/claude/bradbury/js2"))
-BB_KEYS = {"lender": "/home/claude/keys/bradbury_deployer.key", "borrower": "/home/claude/keys/bradbury_seller.key"}
-BB_ADDR = {"lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734", "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7"}
-KEY_LOCKS = {"lender": threading.Lock(), "borrower": threading.Lock()}
+BB_KEYS = {"lender": "/home/claude/keys/bradbury_deployer.key", "borrower": "/home/claude/keys/bradbury_seller.key",
+           "tester": "/home/claude/keys/bradbury_mr.key"}
+BB_ADDR = {"lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734", "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+           "tester": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B"}
+KEY_LOCKS = {k: threading.Lock() for k in BB_KEYS}
+
+
+def bb_free_role():
+    """Anyone may run a covenant test. Bradbury reads take minutes, so the five
+    stories' tests go to whichever of the three wallets is idle."""
+    while True:
+        for role in ("tester", "lender", "borrower"):
+            if not KEY_LOCKS[role].locked():
+                return role
+        time.sleep(2)
 
 
 def bb_node(role, *args):
+    """A write is never sent twice: once it has a hash, a failure only means
+    waiting longer for that same transaction."""
     env = {**os.environ, "BRADBURY_KEY_FILE": BB_KEYS[role]}
     for attempt in range(3):
-        p = subprocess.run(["node", "gl.mjs", *args], cwd=BB_JS, capture_output=True, text=True, timeout=1800, env=env)
-        lines = [ln for ln in p.stdout.splitlines() if ln.startswith("{")]
-        d = json.loads(lines[-1]) if lines else {"ok": False, "error": p.stderr[-600:]}
-        if d.get("ok") or args[0] == "read":
+        try:
+            p = subprocess.run(["node", "gl2.mjs", *args], cwd=BB_JS, capture_output=True, text=True, timeout=1800, env=env)
+            out = p.stdout
+        except subprocess.TimeoutExpired as e:
+            out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
+        objs = [json.loads(ln) for ln in out.splitlines() if ln.startswith("{")]
+        sent = next((o["sent"] for o in objs if "sent" in o), None)
+        d = next((o for o in reversed(objs) if "ok" in o), {"ok": False, "error": "no result"})
+        if d.get("ok"):
             return d
+        if args[0] == "write" and (sent or d.get("hash")):
+            return bb_wait(role, sent or d.get("hash"))
         time.sleep(15)
     return d
+
+
+def bb_wait(role, h):
+    env = {**os.environ, "BRADBURY_KEY_FILE": BB_KEYS[role]}
+    for _ in range(120):
+        p = subprocess.run(["node", "gl2.mjs", "tx", h], cwd=BB_JS, capture_output=True, text=True, timeout=300, env=env)
+        objs = [json.loads(ln) for ln in p.stdout.splitlines() if ln.startswith("{")]
+        raw = (objs[-1].get("raw") if objs else None) or {}
+        if str(raw.get("statusName", "")) in ("ACCEPTED", "FINALIZED") or raw.get("resultName"):
+            return {"ok": True, "hash": h, "raw": raw}
+        time.sleep(15)
+    return {"ok": False, "hash": h, "error": "still pending after 30 minutes"}
 
 
 def bb_write(role, addr, fn, args, value=0):
@@ -169,7 +202,7 @@ class Case:
         """Covenant test; a different kind than wanted is retried every two minutes."""
         until(at)
         while True:
-            res = self.step(f"Test period {n}", "borrower", "test_period", [self.fid, n])
+            res = self.step(f"Test period {n}", bb_free_role() if BB else "borrower", "test_period", [self.fid, n])
             if isinstance(res, dict) and res.get("kind") == want:
                 return res
             if retry_until is None or time.time() + 120 > retry_until:
