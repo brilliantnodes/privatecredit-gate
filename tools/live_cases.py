@@ -35,9 +35,50 @@ SITE = os.environ.get("PCG_SITE", "https://privatecredit.brilliantnodes.com")
 LOCK = threading.Lock()
 RESULTS = {}
 P, R, K = T["period_seconds"], T["report_seconds"], T["cure_seconds"]
-COMMIT = int(float(T["commitment_gen_studio"]) * G)
-CAP = int(float(T["tranche_cap_gen_studio"]) * G)
-UPG = T["units_per_gen_studio"]
+NET = os.environ.get("PCG_NET", "studio")
+BB = NET == "bradbury"
+COMMIT = int(float(T[f"commitment_gen_{NET}"]) * G)
+CAP = int(float(T[f"tranche_cap_gen_{NET}"]) * G)
+UPG = T[f"units_per_gen_{NET}"]
+SCALE = COMMIT // (10 * G) if COMMIT >= 10 * G else None  # draws are tenths of the commitment
+GEN = lambda tenths_of_commitment: COMMIT * tenths_of_commitment // 10  # noqa: E731
+
+# ---------------------------------------------------------------- Bradbury
+# Bradbury runs through genlayer-js 2 (node), with two testnet wallets whose
+# keys stay in files outside the repo. Each wallet sends one transaction at a
+# time; payouts are external messages, so every write carries a fee budget for
+# both parties. The method's return value is read back from the contract's
+# views, not from the receipt.
+BB_JS = Path(os.environ.get("BRADBURY_JS", "/home/claude/bradbury/js2"))
+BB_KEYS = {"lender": "/home/claude/keys/bradbury_deployer.key", "borrower": "/home/claude/keys/bradbury_seller.key"}
+BB_ADDR = {"lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734", "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7"}
+KEY_LOCKS = {"lender": threading.Lock(), "borrower": threading.Lock()}
+
+
+def bb_node(role, *args):
+    env = {**os.environ, "BRADBURY_KEY_FILE": BB_KEYS[role]}
+    for attempt in range(3):
+        p = subprocess.run(["node", "gl.mjs", *args], cwd=BB_JS, capture_output=True, text=True, timeout=1800, env=env)
+        lines = [ln for ln in p.stdout.splitlines() if ln.startswith("{")]
+        d = json.loads(lines[-1]) if lines else {"ok": False, "error": p.stderr[-600:]}
+        if d.get("ok") or args[0] == "read":
+            return d
+        time.sleep(15)
+    return d
+
+
+def bb_write(role, addr, fn, args, value=0):
+    with KEY_LOCKS[role]:
+        d = bb_node(role, "write", addr, fn, json.dumps(args, default=str), str(value), f"{BB_ADDR['lender']},{BB_ADDR['borrower']}")
+    raw = d.get("raw") or {}
+    return d.get("hash"), {"status": raw.get("resultName") or d.get("error"), "execution": raw.get("txExecutionResultName")}
+
+
+def bb_read(addr, fn, args=None):
+    d = bb_node("borrower", "read", addr, fn, json.dumps(args or [], default=str))
+    if not d.get("ok"):
+        raise RuntimeError(f"read {fn}: {d.get('error')}")
+    return d["result"]
 
 
 def log(name, msg):
@@ -51,13 +92,38 @@ def until(ts):
         time.sleep(min(5, max(0.5, ts - time.time())))
 
 
+class _Addr:
+    def __init__(self, a):
+        self.address = a
+
+
 class Case:
     def __init__(self, slug, tag, e0, addr):
         self.slug, self.tag, self.e0, self.addr = slug, tag, e0, addr
         self.c = next(x for x in CASES["cases"] if x["slug"] == slug)
-        self.rec = {"case": slug, "company": self.c["company"], "steps": []}
-        self.cl, self.lender = client()
-        self.cb, self.borrower = client()
+        self.rec = {"case": slug, "company": self.c["company"], "network": NET, "steps": []}
+        if BB:
+            self.cl, self.lender = None, _Addr(BB_ADDR["lender"])
+            self.cb, self.borrower = None, _Addr(BB_ADDR["borrower"])
+        else:
+            self.cl, self.lender = client()
+            self.cb, self.borrower = client()
+
+    def bb_result(self, fn, args, value):
+        """On Bradbury the outcome is read back from the views."""
+        if fn == "create":
+            n = bb_read(self.addr, "get_count")
+            f = bb_read(self.addr, "get_facility", [str(n), 0])
+            return {"ok": f["lender"].lower() == self.lender.address.lower(), "id": str(n), "dsra_required": f["terms"]["dsra_required"]}
+        f = bb_read(self.addr, "get_facility", [self.fid, 0])
+        out = {"ok": True, "status": f["status"]}
+        if fn == "test_period":
+            p = f["periods"][int(args[1])]
+            last = p["attempts"][-1] if p["attempts"] else {}
+            out.update(kind=last.get("kind"), reason=last.get("reason", ""), period=int(args[1]))
+            if p["official"]:
+                out["assessment"] = p["official"]["assessment"]
+        return out
 
     def e(self, n):
         return self.e0 + n * P
@@ -65,9 +131,20 @@ class Case:
     def step(self, label, who, fn, args, value=0, at=None, expect=None):
         if at:
             until(at)
-        c = self.cl if who == "lender" else self.cb
-        tx, r = write(c, self.addr, fn, args, value=value)
-        res = r["result"]
+        if BB:
+            if fn == "create":
+                with KEY_LOCKS["lender"]:
+                    d = bb_node("lender", "write", self.addr, fn, json.dumps(args, default=str), str(value), f"{BB_ADDR['lender']},{BB_ADDR['borrower']}")
+                    raw = d.get("raw") or {}
+                    tx, r = d.get("hash"), {"status": raw.get("resultName") or d.get("error")}
+                    res = self.bb_result(fn, args, value)
+            else:
+                tx, r = bb_write(who, self.addr, fn, args, value=value)
+                res = self.bb_result(fn, args, value)
+        else:
+            c = self.cl if who == "lender" else self.cb
+            tx, r = write(c, self.addr, fn, args, value=value)
+            res = r["result"]
         self.rec["steps"].append({"label": label, "fn": fn, "tx": tx, "status": r["status"], "result": res,
                                   "at": int(time.time())})
         log(self.slug, f"{label}: {r['status']} {json.dumps(res, default=str)[:300]}")
@@ -79,7 +156,14 @@ class Case:
         return res
 
     def view(self, at=0):
+        if BB:
+            return bb_read(self.addr, "get_facility", [self.fid, at])
         return read(self.cb, self.addr, "get_facility", [self.fid, at])
+
+    def quote(self, n, at):
+        if BB:
+            return bb_read(self.addr, "quote_cure", [self.fid, n, at])
+        return read(self.cb, self.addr, "quote_cure", [self.fid, n, at])
 
     def test(self, n, at, want="READ", retry_until=None):
         """Covenant test; a different kind than wanted is retried every two minutes."""
@@ -104,14 +188,15 @@ class Case:
     def pay_off(self, at):
         until(at)
         f = self.view(int(time.time()) + 180)
-        payoff = int(f["money"]["payoff"]) + G // 100  # a small surplus comes back
+        payoff = int(f["money"]["payoff"]) + COMMIT // 1000  # a small surplus comes back
         self.step("Repay in full at maturity", "borrower", "pay", [self.fid, 0], value=payoff,
                   expect=lambda r: r.get("ok") is True and r.get("status") == "CLOSED")
 
     def open(self):
-        fund(self.cl, self.lender.address, 60)
-        fund(self.cb, self.borrower.address, 60)
-        time.sleep(3)
+        if not BB:
+            fund(self.cl, self.lender.address, 60)
+            fund(self.cb, self.borrower.address, 60)
+            time.sleep(3)
         base = f"{SITE}/reports/{self.slug}/{self.tag}/"
         m = self.e(CASES["num_periods"] - 1)
         args = [self.borrower.address, self.c["company"], T["currency"], base, UPG, T["resolution"], CAP, self.e0, P,
@@ -123,7 +208,7 @@ class Case:
         self.rec["id"] = self.fid
         self.rec["lender"], self.rec["borrower"] = self.lender.address, self.borrower.address
         dsra = int(res["dsra_required"])
-        if self.slug == "harbourline":
+        if self.slug == "harbourline" and not BB:
             # Evidence that a refused payable call refunds: the wrong DSRA comes straight back.
             self.step("Accept with the wrong DSRA (refused, refunded)", "borrower", "accept", [self.fid], value=dsra - 1,
                       expect=lambda r: r.get("ok") is False and r.get("refunded") == str(dsra - 1))
@@ -151,18 +236,18 @@ class Case:
     def story_harbourline(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw tranche 1", "borrower", "draw", [self.fid, 4 * G])
-        self.step("Draw tranche 2", "borrower", "draw", [self.fid, 4 * G])
+        self.step("Draw tranche 1", "borrower", "draw", [self.fid, GEN(4)])
+        self.step("Draw tranche 2", "borrower", "draw", [self.fid, GEN(4)])
         self.pay_due(1, e(1) + 90)
         self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
-        self.step("Draw tranche 3", "borrower", "draw", [self.fid, 2 * G])
+        self.step("Draw tranche 3", "borrower", "draw", [self.fid, GEN(2)])
         self.test(2, e(2) + 60, retry_until=e(2) + R - 300)
         self.pay_off(e(2) + 240)
 
     def story_quarrystone(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw", "borrower", "draw", [self.fid, 4 * G])
+        self.step("Draw", "borrower", "draw", [self.fid, GEN(4)])
         self.pay_due(1, e(1) + 90)
         self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
         self.step("Apply time after window close 1 (margin steps up)", "borrower", "apply_time", [self.fid], at=e(1) + R + 60)
@@ -172,34 +257,35 @@ class Case:
     def story_brightwater(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw tranche 1", "borrower", "draw", [self.fid, 4 * G])
-        self.step("Draw tranche 2", "borrower", "draw", [self.fid, 4 * G])
+        self.step("Draw tranche 1", "borrower", "draw", [self.fid, GEN(4)])
+        self.step("Draw tranche 2", "borrower", "draw", [self.fid, GEN(4)])
         self.pay_due(1, e(1) + 90)
         res = self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
         if res.get("status") != "BREACH":
             raise RuntimeError(f"expected a breach at period 1: {res}")
         at = int(time.time()) + 240
-        q = read(self.cb, self.addr, "quote_cure", [self.fid, 1, at])
+        q = self.quote(1, at)
         self.rec["cure_quote"] = q
         log(self.slug, f"cure quote {q}")
-        small = int(q["wei"]) // 2
-        self.step("Cure too small (refused, refunded)", "borrower", "cure", [self.fid, 1], value=small,
-                  expect=lambda r: r.get("ok") is False and r.get("refunded") == str(small))
+        if not BB:
+            small = int(q["wei"]) // 2
+            self.step("Cure too small (refused, refunded)", "borrower", "cure", [self.fid, 1], value=small,
+                      expect=lambda r: r.get("ok") is False and r.get("refunded") == str(small))
         until(at)
         self.step("Equity cure (quote plus a cushion that comes back)", "borrower", "cure", [self.fid, 1],
-                  value=int(q["wei"]) + G // 10, expect=lambda r: r.get("ok") is True and r.get("status") == "ACTIVE")
+                  value=int(q["wei"]) + COMMIT // 100, expect=lambda r: r.get("ok") is True and r.get("status") == "ACTIVE")
         self.test(2, e(2) + 60, retry_until=e(2) + R - 300)
         self.pay_off(e(2) + 240)
 
     def story_northgate(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw", "borrower", "draw", [self.fid, 4 * G])
+        self.step("Draw", "borrower", "draw", [self.fid, GEN(4)])
         self.pay_due(1, e(1) + 90)
         res = self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
         if res.get("status") != "BREACH":
             raise RuntimeError(f"expected a breach at period 1: {res}")
-        q = read(self.cb, self.addr, "quote_cure", [self.fid, 1, int(time.time())])
+        q = self.quote(1, int(time.time()))
         self.rec["cure_quote"] = q
         log(self.slug, f"cure quote {q}")
         d1 = e(1) + R + K
@@ -213,7 +299,7 @@ class Case:
     def story_fenwick(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw", "borrower", "draw", [self.fid, 2 * G])
+        self.step("Draw", "borrower", "draw", [self.fid, GEN(2)])
         self.pay_due(1, e(1) + 90)
         self.test(1, e(1) + 150, want="NOT_PUBLISHED", retry_until=e(1) + 900)
         swap_fenwick(self.tag, self.e0)
@@ -264,7 +350,7 @@ def save():
 if __name__ == "__main__":
     TAG, E0 = sys.argv[1], int(sys.argv[2])
     names = sys.argv[3:] or [c["slug"] for c in CASES["cases"]]
-    ADDR = address()
+    ADDR = os.environ["PCG_ADDRESS"] if BB else address()
     log("main", f"contract {ADDR}, tag {TAG}, E0 {datetime.fromtimestamp(E0, timezone.utc):%Y-%m-%d %H:%M} UTC")
     threads = [threading.Thread(target=Case(n, TAG, E0, ADDR).run) for n in names]
     for th in threads:
