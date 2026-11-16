@@ -1,0 +1,87 @@
+{
+  "note": "Fictional borrowers for the PrivateCreditGate demo. Figures are in currency thousands. Terms are shared; the story of each case comes from its figures and page styles.",
+  "num_periods": 3,
+  "terms": {
+    "currency": "EUR",
+    "units_per_gen_studio": 1000000,
+    "units_per_gen_bradbury": 10000000,
+    "resolution": 1000,
+    "commitment_gen_studio": "10",
+    "tranche_cap_gen_studio": "4",
+    "commitment_gen_bradbury": "1",
+    "tranche_cap_gen_bradbury": "0.4",
+    "period_seconds": 3900,
+    "report_seconds": 1800,
+    "cure_seconds": 1800,
+    "year_seconds": 15600,
+    "base_bp": 500,
+    "grid": "250:250,300:325,350:400,*:500",
+    "fee_bp": 50,
+    "default_bp": 200,
+    "max_leverage_x100": 350,
+    "min_cover_x100": 400,
+    "min_cash": 2000000
+  },
+  "cases": [
+    {
+      "slug": "harbourline",
+      "company": "Harbourline Logistics Ltd",
+      "currency": "EUR",
+      "story": "Compliant throughout: three tranches drawn, interest paid on time, margin stays in band 1, repaid at maturity; the DSRA comes back.",
+      "styles": ["table", "table", "table"],
+      "periods": [
+        {"ltm_ebitda": 18400, "ltm_net_finance_costs": 2150, "total_debt": 38600, "cash": 6900},
+        {"ltm_ebitda": 18900, "ltm_net_finance_costs": 2180, "total_debt": 41200, "cash": 7400},
+        {"ltm_ebitda": 19300, "ltm_net_finance_costs": 2200, "total_debt": 40100, "cash": 8000}
+      ]
+    },
+    {
+      "slug": "quarrystone",
+      "company": "Quarrystone Materials plc",
+      "currency": "EUR",
+      "story": "Reports in prose only. Leverage rises from 2.44x to 3.01x, so the margin steps from band 1 to band 3 at the period-1 window close.",
+      "styles": ["prose", "prose", "prose"],
+      "periods": [
+        {"ltm_ebitda": 12400, "ltm_net_finance_costs": 2100, "total_debt": 39500, "cash": 9200},
+        {"ltm_ebitda": 11600, "ltm_net_finance_costs": 2200, "total_debt": 43000, "cash": 8100},
+        {"ltm_ebitda": 11800, "ltm_net_finance_costs": 2200, "total_debt": 42600, "cash": 8400}
+      ]
+    },
+    {
+      "slug": "brightwater",
+      "company": "Brightwater Foods SA",
+      "currency": "EUR",
+      "story": "Period-1 leverage 3.75x breaches the 3.50x covenant; the borrower pays an equity cure before the deadline and the facility returns to ACTIVE.",
+      "styles": ["table", "table", "table"],
+      "periods": [
+        {"ltm_ebitda": 15000, "ltm_net_finance_costs": 2000, "total_debt": 48000, "cash": 6000},
+        {"ltm_ebitda": 14200, "ltm_net_finance_costs": 2100, "total_debt": 59500, "cash": 6300},
+        {"ltm_ebitda": 14800, "ltm_net_finance_costs": 2100, "total_debt": 52000, "cash": 6600}
+      ]
+    },
+    {
+      "slug": "northgate",
+      "company": "Northgate Retail Group",
+      "currency": "EUR",
+      "story": "Period-1 interest cover 3.12x breaches the 4.00x minimum; a cure cannot fix cover, nothing is waived, E1 falls at the cure deadline, the lender accelerates, the DSRA is applied and the rest is written off.",
+      "styles": ["table", "table", "table"],
+      "periods": [
+        {"ltm_ebitda": 9800, "ltm_net_finance_costs": 2300, "total_debt": 25000, "cash": 3500},
+        {"ltm_ebitda": 8100, "ltm_net_finance_costs": 2600, "total_debt": 27000, "cash": 2400},
+        {"ltm_ebitda": 7900, "ltm_net_finance_costs": 2700, "total_debt": 27500, "cash": 2100}
+      ]
+    },
+    {
+      "slug": "fenwick",
+      "company": "Fenwick Aerospace Components",
+      "currency": "EUR",
+      "story": "The period-1 page first leaves out the units (no reading, N2), then says the report is not yet published; the window closes with no reading, the top band applies, E2 falls and the lender waives it.",
+      "styles": ["table", "units_missing", "table"],
+      "periods": [
+        {"ltm_ebitda": 21000, "ltm_net_finance_costs": 3000, "total_debt": 52000, "cash": 10000},
+        {"ltm_ebitda": 20400, "ltm_net_finance_costs": 3100, "total_debt": 55000, "cash": 9000},
+        {"ltm_ebitda": 21500, "ltm_net_finance_costs": 3000, "total_debt": 50500, "cash": 9800}
+      ]
+    }
+  ]
+}
