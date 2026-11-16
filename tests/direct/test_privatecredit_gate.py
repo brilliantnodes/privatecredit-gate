@@ -574,15 +574,6 @@ def test_report_must_show_at_least_the_debt_drawn_here(env):
     assert r["kind"] == "READ"
 
 
-def test_debt_check_uses_principal_at_the_period_end(env):
-    compliant0(env)
-    draw(env, 4 * G, end(0) + 120)
-    # repaid after the period end: the report covers the period end, when 4 GEN were out
-    tick(env, end(1))
-    pay(env, 10 * G, end(1) + 10)
-    assert fac(env)["status"] == "CLOSED"
-
-
 # ------------------------------------------------------------- pure conversion helpers
 
 
@@ -984,12 +975,6 @@ def test_cure_after_the_deadline_is_refunded(env):
     assert env.sent.to(env.borrower) == G and fac(env)["status"] == "DEFAULT"
 
 
-def test_cure_deadline_refused_even_without_e1_check(env, mod):
-    breach1(env)
-    out = cure(env, 1, G, deadline(1) - 1)
-    assert out["ok"] is True or "not enough" in out.get("error", "")
-
-
 def test_cure_cannot_fix_interest_cover(env):
     breach1(env, debt="30,000", fin="5,000")  # 1.67x leverage fine, cover 3.00x < 4.00x
     out = cure(env, 1, 3 * G, close_(1) + 60)
@@ -1001,13 +986,6 @@ def test_cure_needs_something_owed(env):
     run_test(env, 0, rep(debt="45,000"))
     out = cure(env, 0, G, end(0) + 120)
     assert out["ok"] is False and "nothing is owed" in out["error"]
-
-
-def test_at_most_two_cures_never_consecutive(env, mod):
-    t = None
-    # pure checks on the rule
-    s = {"cures_used": [0]}
-    assert (1 - 1 in s["cures_used"]) is True
 
 
 def test_cure_limits_end_to_end(env):
@@ -1300,11 +1278,6 @@ def test_locked_always_matches_the_contract_balance(env):
     assert received - sent_out == int(env.c.get_locked()) == DSRA
 
 
-def test_engine_checks_that_money_adds_up(env, mod):
-    f = mod._new_state({"commitment": 5, "grid": [[None, 1]], "num_periods": 2}, 0)
-    assert f["commitment_held"] == 5 and f["dsra_held"] == 0
-
-
 # ------------------------------------------------------------- validators
 
 
@@ -1485,3 +1458,120 @@ def test_schedule_order(mod):
     assert [x[2] for x in sched[:2]] == ["END", "AVAILABILITY_END"]
     assert ("MATURITY" in [x[2] for x in sched]) and [x for x in sched if x[2] == "MATURITY"][0][0] == 10100 + 1800
     assert [x[3] for x in sched if x[2] == "DUE"] == [1]
+
+
+# ------------------------------------------------------------- further edges
+
+
+def test_debt_check_uses_principal_at_the_period_end(env):
+    compliant0(env)
+    draw(env, 4 * G, end(0) + 100)
+    draw(env, 3 * G, end(0) + 110)
+    pay_due(env, 1)
+    pay(env, 5 * G, end(1) + 20)  # repaid after the period end: 7 GEN were out at the end
+    assert money(env, "principal") < 3 * G  # 5 GEN went to interest first, then principal
+    r = run_test(env, 1, rep(n=1, debt="6,999"), at=end(1) + 60)
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_DEBT_BELOW_DRAWN"
+
+
+
+
+def test_cure_lifts_the_draw_stop_before_availability_end(env):
+    compliant0(env, max_leverage_x100=250, availability_end=M)
+    draw(env, 4 * G, end(0) + 100)
+    pay_due(env, 1)
+    run_test(env, 1, rep(n=1, debt="45,000"))
+    with env.vm.expect_revert("status ACTIVE (now BREACH)"):
+        draw(env, G, end(1) + 120)
+    assert cure(env, 1, 3 * G, end(1) + 130)["ok"] is True
+    assert draw(env, G, end(1) + 140)["ok"] is True
+
+
+def test_waived_missing_report_gives_no_e2(env):
+    compliant0(env, availability_end=M)
+    draw(env, G, end(0) + 100)
+    pay_due(env, 1)
+    tick(env, close_(1) + 10)
+    out = as_lender(env, "waive", 1, at=close_(1) + 20)
+    assert out["waived"] == ["missing report"]
+    tick(env, deadline(1) + 10)
+    assert fac(env)["events"] == [] and fac(env)["status"] == "ACTIVE"
+
+
+def test_e4_falls_cure_seconds_after_maturity(env):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    for n in (1, 2):
+        pay_due(env, n)
+        run_test(env, n, rep(n=n))
+    tick(env, M + K - 1)
+    assert fac(env)["events"] == []
+    tick(env, M + K)
+    assert fac(env)["events"] == [{"code": "E4", "period": -1, "at": M + K, "waived_at": 0}]
+
+
+def test_nothing_drawn_with_fees_owed_closes_only_once_paid(env):
+    ready(env)
+    run_test(env, 0, rep())
+    pay_due(env, 1)
+    run_test(env, 1, rep(n=1))
+    tick(env, A + 1)
+    f = fac(env)
+    assert f["status"] == "ACTIVE" and int(f["money"]["fees_owed"]) > 0
+    out = pay(env, int(f["money"]["fees_owed"]), A + 2)
+    assert out["status"] == "CLOSED" and env.c.get_locked() == "0"
+
+
+def test_acceleration_before_availability_end_returns_the_undrawn(env):
+    compliant0(env, availability_end=M)
+    draw(env, 4 * G, end(0) + 100)
+    run_test(env, 1, rep(n=1, fin="5,000", debt="30,000"))
+    tick(env, deadline(1))
+    env.sent.clear()
+    out = as_lender(env, "accelerate", at=deadline(1) + 10)
+    assert env.sent.to(env.lender) == 6 * G + int(out["dsra_applied"]) and env.c.get_locked() == "0"
+
+
+def test_close_refused_before_acceleration(env):
+    compliant0(env)
+    with env.vm.expect_revert("only an accelerated facility"):
+        as_lender(env, "close", at=end(0) + 100)
+
+
+def test_cure_after_the_deadline_with_enough_value_is_refunded(env):
+    breach1(env)
+    out = cure(env, 1, 3 * G, deadline(1))
+    assert out["ok"] is False and "cure deadline" in out["error"] and env.sent.to(env.borrower) == 3 * G
+
+
+def test_cure_counts_only_the_applied_part_against_net_debt(env):
+    compliant0(env, max_leverage_x100=250)
+    draw(env, G, end(0) + 100)  # only 1 GEN out, so at most about EUR 1m can be applied
+    pay_due(env, 1)
+    run_test(env, 1, rep(n=1, debt="45,000"))  # needs EUR 2.5m
+    env.sent.clear()
+    out = cure(env, 1, 3 * G, close_(1) - 600)
+    assert out["ok"] is False and "not enough" in out["error"] and env.sent.to(env.borrower) == 3 * G
+
+
+def test_waiver_refused_after_acceleration(env):
+    default1(env)
+    as_lender(env, "accelerate", at=deadline(1) + 100)
+    with env.vm.expect_revert("nothing to waive"):
+        as_lender(env, "waive", 1, at=deadline(1) + 200)
+
+
+def test_attempt_log_keeps_the_first_twenty(env):
+    ready(env)
+    for i in range(22):
+        run_test(env, 0, rep(kind="not_published"), at=end(0) + 10 + i)
+    p = fac(env)["periods"][0]
+    assert p["attempt_count"] == 22 and len(p["attempts"]) == 20 and p["attempts"][0]["at"] == end(0) + 10
+
+
+def test_validator_refuses_a_bad_reason_even_when_it_also_has_no_reading(env):
+    ready(env)
+    run_test(env, 0, rep(scale="not_stated"))
+    assert env.vm.run_validator(leader_result={"kind": "NO_READING", "reason": "TRUST_ME"}) is False
+    assert env.vm.run_validator(leader_result={"kind": "NO_READING", "reason": "N2_DEBT_BELOW_DRAWN"}) is False
+    assert env.vm.run_validator(leader_result={"kind": "NO_READING", "reason": "N2_CONFLICT"}) is True
