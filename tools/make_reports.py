@@ -62,14 +62,14 @@ footer{{margin-top:40px;padding-top:12px;border-top:1px solid #d8d4ca;color:#777
 <h2>Investor relations: covenant compliance certificate</h2>
 </header>
 {body}
-<footer>{company} is a fictional company. This page is demo data for PrivateCreditGate, a GenLayer Intelligent Contract; it is not a real report.</footer>
+<footer>Fictional company; demo data.</footer>
 </body>
 </html>
 """
 
 
 def body_table(c, n, f, end, with_scale=True):
-    unit = f"{c['currency']} thousands" if with_scale else c["currency"]
+    unit = f"{c['currency']} thousands" if with_scale else "Amount"
     caption = (f"All figures in {c['currency']} thousands. EBITDA and net finance costs are for the last twelve months (LTM) to the period end."
                if with_scale else
                "EBITDA and net finance costs are for the last twelve months (LTM) to the period end.")
@@ -118,6 +118,8 @@ def page(c, n, style, end):
 
 def main(argv):
     tag, e0, p = argv[0], int(argv[1]), int(argv[2])
+    if e0 % 60 or p % 60:
+        raise SystemExit("first_period_end and period_seconds must be whole minutes: the pages give times to the minute")
     only = None
     variants = {}
     i = 3

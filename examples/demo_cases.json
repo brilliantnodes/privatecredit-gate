@@ -27,7 +27,7 @@
       "slug": "harbourline",
       "company": "Harbourline Logistics Ltd",
       "currency": "EUR",
-      "story": "Compliant throughout: three tranches drawn, interest paid on time, margin stays in band 1, repaid at maturity; the DSRA comes back.",
+      "story": "Compliant throughout: three tranches drawn, interest paid on time, margin stays in band 1, repaid at maturity; the DSRA comes back. Displayed ratios round against the borrower (leverage up, cover down).",
       "styles": ["table", "table", "table"],
       "periods": [
         {"ltm_ebitda": 18400, "ltm_net_finance_costs": 2150, "total_debt": 38600, "cash": 6900},
@@ -39,7 +39,7 @@
       "slug": "quarrystone",
       "company": "Quarrystone Materials plc",
       "currency": "EUR",
-      "story": "Reports in prose only. Leverage rises from 2.44x to 3.01x, so the margin steps from band 1 to band 3 at the period-1 window close.",
+      "story": "Reports in prose only. Leverage rises from 2.45x to 3.01x, so the margin steps from band 1 to band 3 at the period-1 window close.",
       "styles": ["prose", "prose", "prose"],
       "periods": [
         {"ltm_ebitda": 12400, "ltm_net_finance_costs": 2100, "total_debt": 39500, "cash": 9200},
@@ -63,7 +63,7 @@
       "slug": "northgate",
       "company": "Northgate Retail Group",
       "currency": "EUR",
-      "story": "Period-1 interest cover 3.12x breaches the 4.00x minimum; a cure cannot fix cover, nothing is waived, E1 falls at the cure deadline, the lender accelerates, the DSRA is applied and the rest is written off.",
+      "story": "Period-1 interest cover 3.11x breaches the 4.00x minimum; a cure cannot fix cover, nothing is waived, E1 falls at the cure deadline, the lender accelerates, the DSRA is applied and the rest is written off.",
       "styles": ["table", "table", "table"],
       "periods": [
         {"ltm_ebitda": 9800, "ltm_net_finance_costs": 2300, "total_debt": 25000, "cash": 3500},
@@ -75,7 +75,7 @@
       "slug": "fenwick",
       "company": "Fenwick Aerospace Components",
       "currency": "EUR",
-      "story": "The period-1 page first leaves out the units (no reading, N2), then says the report is not yet published; the window closes with no reading, the top band applies, E2 falls and the lender waives it.",
+      "story": "Draws before period 1. The period-1 page first leaves out the units (no reading, N2), then says the report is not yet published; the window closes with no reading, the top band applies, E2 falls and the lender waives it.",
       "styles": ["table", "units_missing", "table"],
       "periods": [
         {"ltm_ebitda": 21000, "ltm_net_finance_costs": 3000, "total_debt": 52000, "cash": 10000},
