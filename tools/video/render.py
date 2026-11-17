@@ -6,7 +6,7 @@ straight into ffmpeg as JPEG, one encoded file per scene, then the scenes are
 joined with the concat demuxer and -c copy.
 
   python3 shot.py                       # site and report screenshots
-  python3 render.py data.json           # privatecredit-demo.mp4 (1920x1080, 45 s)
+  python3 render.py data.json           # privatecredit-demo.mp4 (1920x1080, 48.5 s)
   python3 render.py data.json --preview hook@3 cure@2.5   # stills to look at
 """
 import json
@@ -21,7 +21,7 @@ HERE = Path(__file__).resolve().parent
 FPS = 30
 SIZE = (1920, 1080)
 OUT = "privatecredit-demo.mp4"
-SCENES = [("hook", 4.5), ("report", 5.0), ("validators", 6.5), ("cure", 6.0), ("outcomes", 7.0),
+SCENES = [("title", 3.5), ("hook", 4.5), ("report", 5.0), ("validators", 6.5), ("cure", 6.0), ("outcomes", 7.0),
           ("networks", 6.0), ("site", 6.5), ("end", 3.5)]
 
 
