@@ -130,6 +130,10 @@ def bb_write(role, addr, fn, args, value=0, payees=""):
     h = d.get("hash")
     if h and not bb_decided(d.get("raw") or {}):
         d = bb_wait(role, h)
+    # A leader or validator timeout can still execute after the leader
+    # rotates (seen on Bradbury on 17 Nov), so wait for the final outcome.
+    if h and str((d.get("raw") or {}).get("statusName")) in ("LEADER_TIMEOUT", "VALIDATORS_TIMEOUT"):
+        d = bb_wait(role, h, final=True)
     raw = d.get("raw") or {}
     st = str(raw.get("statusName", ""))
     status = st if st in NOTHING_STORED else (raw.get("resultName") or d.get("error"))
@@ -264,6 +268,12 @@ class Case:
             res = self.step(f"Test period {n}", bb_free_role() if BB else "borrower", "test_period", [self.fid, n])
             if isinstance(res, dict) and res.get("kind") == want:
                 return res
+            if want == "READ":
+                p = self.view()["periods"][n]
+                if p["official"]:  # an earlier test landed late and holds the official reading
+                    log(self.slug, f"period {n} already has its official reading ({p['status']})")
+                    return {"ok": True, "status": self.view()["status"], "period": n, "kind": "READ",
+                            "assessment": p["official"]["assessment"], "note": "official reading from an earlier test"}
             if retry_until is None or time.time() + 120 > retry_until:
                 raise RuntimeError(f"test {n}: wanted {want}, got {res}")
             time.sleep(120)

@@ -1,0 +1,183 @@
+{
+  "address": "0x8c17b9742700539D3A2Ec97111073e5c93A6e1f0",
+  "tag": "bradbury-2",
+  "e0": 1794906900,
+  "cases": {
+    "brenthollow": {
+      "case": "brenthollow",
+      "company": "Brenthollow Foods SA",
+      "network": "bradbury",
+      "steps": [
+        {
+          "label": "Cure too small (refused, credited back)",
+          "fn": "cure",
+          "tx": "0x54554d17ea1421fad6a04f562a063c9a825c45574496aa57f70dc4ff8c744052",
+          "status": "MAJORITY_AGREE",
+          "execution": "FINISHED_WITH_RETURN",
+          "created": "1794912052",
+          "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+          "result": {
+            "status": "BREACH",
+            "logged": [
+              "CREDIT: 178171762820512820 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (refused: not enough to fix the leverage test: fees and interest owed come first, then the prepayment that counts; send at least 355377179487179487 wei now); withdraw it with withdraw()"
+            ],
+            "ok": false,
+            "refunded": "178171762820512820",
+            "error": "not enough to fix the leverage test: fees and interest owed come first, then the prepayment that counts; send at least 355377179487179487 wei now"
+          },
+          "at": 1794912088
+        },
+        {
+          "label": "Equity cure (quote plus a cushion that comes back)",
+          "fn": "cure",
+          "tx": "0xd812732b2077748a4aed9dd4aeee760a8b96f97f0447fb4444981e12f2b973d0",
+          "status": "MAJORITY_AGREE",
+          "execution": "FINISHED_WITH_RETURN",
+          "created": "1794912286",
+          "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+          "result": {
+            "status": "ACTIVE",
+            "logged": [
+              "CURED: period 1: 350000000000000000 wei of principal prepaid (3500000 EUR against net debt) after fees 70000000000000 wei and interest 6312179487179487 wei; leverage 3.50x",
+              "CREDIT: 356382179487179487 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (equity cure applied); withdraw it with withdraw()",
+              "CREDIT: 9961346153846154 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (cure excess back); withdraw it with withdraw()"
+            ],
+            "ok": true
+          },
+          "at": 1794912322
+        },
+        {
+          "label": "Test period 2",
+          "fn": "test_period",
+          "tx": "0xa2ebec2e111a91e9435446a85656663aca459849e8c0ab19d0fc48e2773c888c",
+          "status": "MAJORITY_AGREE",
+          "execution": "FINISHED_WITH_RETURN",
+          "created": "1794914829",
+          "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+          "result": {
+            "status": "ACTIVE",
+            "logged": [
+              "WINDOW_CLOSE: period 1: margin band 4 (500 bp) from now",
+              "PERIOD_END: period 2 ended; due now 6959695512820513 wei; draws stop until its official reading",
+              "AVAILABILITY_END: 200000000000000000 wei undrawn back to the lender",
+              "OFFICIAL_READING: period 2: compliant; leverage 3.07x, cover 7.04x, band 3",
+              "CREDIT: 200000000000000000 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (undrawn commitment back at availability end); withdraw it with withdraw()"
+            ],
+            "ok": true,
+            "period": 2,
+            "kind": "READ",
+            "reason": "",
+            "assessment": {
+              "adjusted_net_debt": "45400000",
+              "band": 3,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "7.04x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "3.07x",
+              "margin_bp": 400,
+              "net_debt": "45400000"
+            },
+            "figures": {
+              "cash": "6600000",
+              "ltm_ebitda": "14800000",
+              "ltm_net_finance_costs": "2100000",
+              "total_debt": "52000000"
+            }
+          },
+          "at": 1794915004
+        },
+        {
+          "label": "Repay in full at maturity",
+          "fn": "pay",
+          "tx": "0xbd9845c4f11a682920c95f36ed13b18bbfa90b1a9de9d4776bb2061131ef19ae",
+          "status": "MAJORITY_AGREE",
+          "execution": "FINISHED_WITH_RETURN",
+          "created": "1794915017",
+          "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+          "result": {
+            "status": "CLOSED",
+            "logged": [
+              "PAYMENT: fees 154743589743590 wei, interest 7719375000000000 wei, principal 450000000000000000 wei; excess 1481730769230769 wei back",
+              "CLOSED: repaid in full",
+              "CREDIT: 457874118589743590 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()",
+              "CREDIT: 1481730769230769 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (payment excess back); withdraw it with withdraw()",
+              "CREDIT: 25000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (DSRA back to the borrower at closing); withdraw it with withdraw()"
+            ],
+            "ok": true
+          },
+          "at": 1794915092
+        }
+      ],
+      "id": "3",
+      "note": "continuation after the period-1 test thread stopped",
+      "period1_official": {
+        "agreed": "validators agreed the outcome kind and all four figures exactly",
+        "assessment": {
+          "adjusted_net_debt": "53200000",
+          "band": 4,
+          "cash_ok": true,
+          "compliant": false,
+          "cover_ok": true,
+          "cover_text": "6.76x",
+          "cure_units": "0",
+          "leverage_ok": false,
+          "leverage_text": "3.75x",
+          "margin_bp": 500,
+          "net_debt": "53200000"
+        },
+        "at": 1794911316,
+        "attempt": 1,
+        "by": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+        "figures": {
+          "cash": "6300000",
+          "ltm_ebitda": "14200000",
+          "ltm_net_finance_costs": "2100000",
+          "total_debt": "59500000"
+        },
+        "url": "https://privatecredit.brilliantnodes.com/reports/brenthollow/bradbury-2/period-1.html"
+      },
+      "cure_quote": {
+        "at": 1794912277,
+        "currency": "EUR",
+        "deadline": 1794914400,
+        "note": "amounts owed grow every second: quote for the time the cure will be sent; any surplus comes back",
+        "owed_first": "6343525641025641",
+        "period": 1,
+        "possible": true,
+        "principal_prepayment": "350000000000000000",
+        "units": "3500000",
+        "wei": "356343525641025641"
+      },
+      "final": {
+        "status": "CLOSED",
+        "closed_reason": "repaid in full",
+        "money": {
+          "default_interest_accrued": "0",
+          "drawn_total": "800000000000000000",
+          "dsra_applied": "0",
+          "dsra_held": "0",
+          "fees_accrued": "1820384615384615",
+          "fees_owed": "0",
+          "interest_accrued": "28710336538461538",
+          "interest_owed": "0",
+          "paid_fees": "1820384615384615",
+          "paid_interest": "28710336538461538",
+          "paid_principal": "800000000000000000",
+          "payoff": "0",
+          "principal": "0",
+          "undrawn_held": "0"
+        },
+        "events": [],
+        "periods": [
+          "COMPLIANT",
+          "CURED",
+          "COMPLIANT"
+        ],
+        "written_off": null
+      }
+    }
+  }
+}

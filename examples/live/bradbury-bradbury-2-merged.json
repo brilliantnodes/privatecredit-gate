@@ -1,0 +1,1689 @@
+{
+ "address": "0x8c17b9742700539D3A2Ec97111073e5c93A6e1f0",
+ "tag": "bradbury-2",
+ "e0": 1794906900,
+ "cases": {
+  "ashcarrow": {
+   "case": "ashcarrow",
+   "company": "Ashcarrow Logistics Ltd",
+   "network": "bradbury",
+   "steps": [
+    {
+     "label": "Offer the facility (commitment deposited)",
+     "fn": "create",
+     "tx": "0x527bc610cf9e452c24991aa23e30a059458959a5b04c9149064d27e14ed62c9c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794902929",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "ok": true,
+      "id": "1",
+      "dsra_required": "25000000000000000"
+     },
+     "at": 1794902964
+    },
+    {
+     "label": "Accept with the wrong DSRA (refused, credited back)",
+     "fn": "accept",
+     "tx": "0x49f0da542ab406ba29b2a1c871df34a9ca460b17e0123bdbe3a69a0a13aacdc2",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794902973",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "OFFERED",
+      "logged": [
+       "CREDIT: 24999999999999999 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (refused: send exactly the DSRA: 25000000000000000 wei); withdraw it with withdraw()"
+      ],
+      "ok": false,
+      "refunded": "24999999999999999",
+      "error": "send exactly the DSRA: 25000000000000000 wei"
+     },
+     "at": 1794903029
+    },
+    {
+     "label": "Accept: fund the DSRA",
+     "fn": "accept",
+     "tx": "0x8515fa2d2ff97aeab5d26e95f80e379c063657728289bb1450728c1852dfd43b",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903069",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "ACCEPTED: DSRA 25000000000000000 wei funded"
+      ],
+      "ok": true
+     },
+     "at": 1794903125
+    },
+    {
+     "label": "Test period 0",
+     "fn": "test_period",
+     "tx": "0x2600b8bd965631c6c2fa04a1844fb5a68e4e9333fb26c0fae208f4693decd721",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907238",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PERIOD_END: period 0 ended; due now 1227884615384615 wei; draws stop until its official reading",
+       "OFFICIAL_READING: period 0: compliant; leverage 1.73x, cover 8.55x, band 1"
+      ],
+      "ok": true,
+      "period": 0,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "31700000",
+       "band": 1,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "8.55x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "1.73x",
+       "margin_bp": 250,
+       "net_debt": "31700000"
+      },
+      "figures": {
+       "cash": "6900000",
+       "ltm_ebitda": "18400000",
+       "ltm_net_finance_costs": "2150000",
+       "total_debt": "38600000"
+      }
+     },
+     "at": 1794907467
+    },
+    {
+     "label": "Draw tranche 1",
+     "fn": "draw",
+     "tx": "0x9d411bdd964b88d99c30b14e929d90fb7716d65bd43940420b4b76c4433b503e",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907598",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 400000000000000000 wei; principal now 400000000000000000 wei",
+       "CREDIT: 400000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "400000000000000000"
+     },
+     "at": 1794907688
+    },
+    {
+     "label": "Draw tranche 2",
+     "fn": "draw",
+     "tx": "0xf0c4ff5e4138c0d0d8c6ad13e0d977a0ddeed08fa2611a9c4a0eed1cf5a9aaad",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907792",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 400000000000000000 wei; principal now 800000000000000000 wei",
+       "CREDIT: 400000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "800000000000000000"
+     },
+     "at": 1794907828
+    },
+    {
+     "label": "Apply time",
+     "fn": "apply_time",
+     "tx": "0xb3f038cf3c2cbf080a22b2cd592047e2028378e96e6627a36641e44284ec3eae",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911076",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 0: margin band 1 (250 bp) from now",
+       "PERIOD_END: period 1 ended; due now 13624038461538461 wei; draws stop until its official reading"
+      ],
+      "ok": true
+     },
+     "at": 1794911112
+    },
+    {
+     "label": "Pay interest and fees due at period 1",
+     "fn": "pay",
+     "tx": "0x3950d37eb0263f33355888736c2c9c35756c5d326a92044df6964552e838ecc3",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911335",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PAYMENT: fees 1716025641025641 wei, interest 11908012820512820 wei, principal 0 wei; excess 0 wei back",
+       "CREDIT: 13624038461538461 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794911430
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x301eb196cc21e7f37482ba6947c5ef2fcb6c791ac770964e1d0bd924fba4a08c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911437",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "OFFICIAL_READING: period 1: compliant; leverage 1.79x, cover 8.66x, band 1"
+      ],
+      "ok": true,
+      "period": 1,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "33800000",
+       "band": 1,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "8.66x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "1.79x",
+       "margin_bp": 250,
+       "net_debt": "33800000"
+      },
+      "figures": {
+       "cash": "7400000",
+       "ltm_ebitda": "18900000",
+       "ltm_net_finance_costs": "2180000",
+       "total_debt": "41200000"
+      }
+     },
+     "at": 1794911526
+    },
+    {
+     "label": "Draw tranche 3",
+     "fn": "draw",
+     "tx": "0x7d1a36c96b963e277fcd736ecdfa9b9437d9cda2f430e71ee0c6320bfdf9773a",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911551",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 200000000000000000 wei; principal now 1000000000000000000 wei",
+       "CREDIT: 200000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "1000000000000000000"
+     },
+     "at": 1794911593
+    },
+    {
+     "label": "Test period 2",
+     "fn": "test_period",
+     "tx": "0x4dc1e1814fb7821d6689fe009ded3d8ed031c509dd88c103412300710b80518c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794915045",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 1: margin band 1 (250 bp) from now",
+       "PERIOD_END: period 2 ended; due now 18076025641025640 wei; draws stop until its official reading",
+       "AVAILABILITY_END: nothing undrawn",
+       "OFFICIAL_READING: period 2: compliant; leverage 1.67x, cover 8.77x, band 1"
+      ],
+      "ok": true,
+      "period": 2,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "32100000",
+       "band": 1,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "8.77x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "1.67x",
+       "margin_bp": 250,
+       "net_debt": "32100000"
+      },
+      "figures": {
+       "cash": "8000000",
+       "ltm_ebitda": "19300000",
+       "ltm_net_finance_costs": "2200000",
+       "total_debt": "40100000"
+      }
+     },
+     "at": 1794915186
+    },
+    {
+     "label": "Repay in full at maturity",
+     "fn": "pay",
+     "tx": "0x916a6d7c760fa86f629c3078871ebd617a2121f3fbe8c54762f7f03f0fcb83a7",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794915209",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "CLOSED",
+      "logged": [
+       "PAYMENT: fees 13846153846153 wei, interest 20509294871794872 wei, principal 1000000000000000000 wei; excess 1754807692307692 wei back",
+       "CLOSED: repaid in full",
+       "CREDIT: 1020523141025641025 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()",
+       "CREDIT: 1754807692307692 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (payment excess back); withdraw it with withdraw()",
+       "CREDIT: 25000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (DSRA back to the borrower at closing); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794915238
+    }
+   ],
+   "id": "1",
+   "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+   "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+   "final": {
+    "status": "CLOSED",
+    "closed_reason": "repaid in full",
+    "money": {
+     "default_interest_accrued": "0",
+     "drawn_total": "1000000000000000000",
+     "dsra_applied": "0",
+     "dsra_held": "0",
+     "fees_accrued": "1729871794871794",
+     "fees_owed": "0",
+     "interest_accrued": "32417307692307692",
+     "interest_owed": "0",
+     "paid_fees": "1729871794871794",
+     "paid_interest": "32417307692307692",
+     "paid_principal": "1000000000000000000",
+     "payoff": "0",
+     "principal": "0",
+     "undrawn_held": "0"
+    },
+    "events": [],
+    "periods": [
+     "COMPLIANT",
+     "COMPLIANT",
+     "COMPLIANT"
+    ],
+    "written_off": null
+   }
+  },
+  "quillstrand": {
+   "case": "quillstrand",
+   "company": "Quillstrand Materials plc",
+   "network": "bradbury",
+   "steps": [
+    {
+     "label": "Offer the facility (commitment deposited)",
+     "fn": "create",
+     "tx": "0xeda43271428ab6f8f71ba79466112cf5e7ec5c0a5734ad68ec723ba7692e613b",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794902972",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "ok": true,
+      "id": "2",
+      "dsra_required": "25000000000000000"
+     },
+     "at": 1794903007
+    },
+    {
+     "label": "Accept: fund the DSRA",
+     "fn": "accept",
+     "tx": "0xdebf58db759cc65ab1489ef89dac23b5d3d88e82ea268777f75d0e6d4f73d17c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903024",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "ACCEPTED: DSRA 25000000000000000 wei funded"
+      ],
+      "ok": true
+     },
+     "at": 1794903073
+    },
+    {
+     "label": "Test period 0",
+     "fn": "test_period",
+     "tx": "0x4f3ec6bdf146adc588b1acbc69a7d7dc62d287d0ae8cdd5d50738fbb8c60d83b",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907462",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PERIOD_END: period 0 ended; due now 1242307692307692 wei; draws stop until its official reading",
+       "OFFICIAL_READING: period 0: compliant; leverage 2.45x, cover 5.90x, band 1"
+      ],
+      "ok": true,
+      "period": 0,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "30300000",
+       "band": 1,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "5.90x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "2.45x",
+       "margin_bp": 250,
+       "net_debt": "30300000"
+      },
+      "figures": {
+       "cash": "9200000",
+       "ltm_ebitda": "12400000",
+       "ltm_net_finance_costs": "2100000",
+       "total_debt": "39500000"
+      }
+     },
+     "at": 1794907577
+    },
+    {
+     "label": "Draw",
+     "fn": "draw",
+     "tx": "0x0227c81fef21a75881e1e83c049e37302503a0d990a3662f300183efc057dc01",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907684",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 400000000000000000 wei; principal now 400000000000000000 wei",
+       "CREDIT: 400000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "400000000000000000"
+     },
+     "at": 1794907772
+    },
+    {
+     "label": "Apply time",
+     "fn": "apply_time",
+     "tx": "0x479d428cefef82671ae5a6683ef58072bb2555f943a1fa495946ad14daae8a24",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794910964",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 0: margin band 1 (250 bp) from now",
+       "PERIOD_END: period 1 ended; due now 8085128205128204 wei; draws stop until its official reading"
+      ],
+      "ok": true
+     },
+     "at": 1794911006
+    },
+    {
+     "label": "Pay interest and fees due at period 1",
+     "fn": "pay",
+     "tx": "0x312e59eee97420ce5f31a660e5c979af9abe1cff657039b4be4ef3dfad68f13b",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911138",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PAYMENT: fees 2157820512820512 wei, interest 5927307692307692 wei, principal 0 wei; excess 0 wei back",
+       "CREDIT: 8085128205128204 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794911180
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x22bf213015f2a1b862377f739de17b4fd183b42ef5ba53c75c92089f328a54db",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911188",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "OFFICIAL_READING: period 1: compliant; leverage 3.01x, cover 5.27x, band 3"
+      ],
+      "ok": true,
+      "period": 1,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "34900000",
+       "band": 3,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "5.27x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "3.01x",
+       "margin_bp": 400,
+       "net_debt": "34900000"
+      },
+      "figures": {
+       "cash": "8100000",
+       "ltm_ebitda": "11600000",
+       "ltm_net_finance_costs": "2200000",
+       "total_debt": "43000000"
+      }
+     },
+     "at": 1794911284
+    },
+    {
+     "label": "Apply time after window close 1 (margin steps up)",
+     "fn": "apply_time",
+     "tx": "0x339012031ccc3dcb191d6632a6e66654875a22d42659ed630eada837eebec909",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794912670",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 1: margin band 3 (400 bp) from now"
+      ],
+      "ok": true
+     },
+     "at": 1794912707
+    },
+    {
+     "label": "Test period 2",
+     "fn": "test_period",
+     "tx": "0x3bff9bc42d8e9c726e0c22d53cf604f66b30857479c558f7972c1ee3099124f9",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794914770",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PERIOD_END: period 2 ended; due now 9057692307692308 wei; draws stop until its official reading",
+       "AVAILABILITY_END: 600000000000000000 wei undrawn back to the lender",
+       "OFFICIAL_READING: period 2: compliant; leverage 2.90x, cover 5.36x, band 2",
+       "CREDIT: 600000000000000000 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (undrawn commitment back at availability end); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "period": 2,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "34200000",
+       "band": 2,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "5.36x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "2.90x",
+       "margin_bp": 325,
+       "net_debt": "34200000"
+      },
+      "figures": {
+       "cash": "8400000",
+       "ltm_ebitda": "11800000",
+       "ltm_net_finance_costs": "2200000",
+       "total_debt": "42600000"
+      }
+     },
+     "at": 1794914846
+    },
+    {
+     "label": "Repay in full at maturity",
+     "fn": "pay",
+     "tx": "0x548884b01556646ca3fcdb7eff4d53ac062a71a557aee5444d64438e797d76b8",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794914955",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "CLOSED",
+      "logged": [
+       "PAYMENT: fees 685000000000000 wei, interest 8961153846153846 wei, principal 400000000000000000 wei; excess 1380769230769231 wei back",
+       "CLOSED: repaid in full",
+       "CREDIT: 409646153846153846 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()",
+       "CREDIT: 1380769230769231 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (payment excess back); withdraw it with withdraw()",
+       "CREDIT: 25000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (DSRA back to the borrower at closing); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794915071
+    }
+   ],
+   "id": "2",
+   "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+   "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+   "final": {
+    "status": "CLOSED",
+    "closed_reason": "repaid in full",
+    "money": {
+     "default_interest_accrued": "0",
+     "drawn_total": "400000000000000000",
+     "dsra_applied": "0",
+     "dsra_held": "0",
+     "fees_accrued": "2842820512820512",
+     "fees_owed": "0",
+     "interest_accrued": "14888461538461538",
+     "interest_owed": "0",
+     "paid_fees": "2842820512820512",
+     "paid_interest": "14888461538461538",
+     "paid_principal": "400000000000000000",
+     "payoff": "0",
+     "principal": "0",
+     "undrawn_held": "0"
+    },
+    "events": [],
+    "periods": [
+     "COMPLIANT",
+     "COMPLIANT",
+     "COMPLIANT"
+    ],
+    "written_off": null
+   }
+  },
+  "brenthollow": {
+   "case": "brenthollow",
+   "company": "Brenthollow Foods SA",
+   "network": "bradbury",
+   "steps": [
+    {
+     "label": "Offer the facility (commitment deposited)",
+     "fn": "create",
+     "tx": "0xb065503d825e9ce2da3b2ba0e340b4201e8c2b53061cb7e4cebb66b84c6068d9",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903015",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "ok": true,
+      "id": "3",
+      "dsra_required": "25000000000000000"
+     },
+     "at": 1794903058
+    },
+    {
+     "label": "Accept: fund the DSRA",
+     "fn": "accept",
+     "tx": "0x0c0b7d7f4e0769b0025afc58dbc157c82206828b8da088e183d331faa9939789",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903120",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "ACCEPTED: DSRA 25000000000000000 wei funded"
+      ],
+      "ok": true
+     },
+     "at": 1794903162
+    },
+    {
+     "label": "Test period 0",
+     "fn": "test_period",
+     "tx": "0x8a172d451b00a08ea655f9be37b57f30f67bb2be4c1732e05a9152e1f74c03a5",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794906970",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PERIOD_END: period 0 ended; due now 1211538461538461 wei; draws stop until its official reading",
+       "OFFICIAL_READING: period 0: compliant; leverage 2.80x, cover 7.50x, band 2"
+      ],
+      "ok": true,
+      "period": 0,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "42000000",
+       "band": 2,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "7.50x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "2.80x",
+       "margin_bp": 325,
+       "net_debt": "42000000"
+      },
+      "figures": {
+       "cash": "6000000",
+       "ltm_ebitda": "15000000",
+       "ltm_net_finance_costs": "2000000",
+       "total_debt": "48000000"
+      }
+     },
+     "at": 1794907153
+    },
+    {
+     "label": "Draw tranche 1",
+     "fn": "draw",
+     "tx": "0xba8d9d9e47a3836129a3b3f64cdda784526b22981731d07d39b664c8f784929c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907161",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 400000000000000000 wei; principal now 400000000000000000 wei",
+       "CREDIT: 400000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "400000000000000000"
+     },
+     "at": 1794907356
+    },
+    {
+     "label": "Draw tranche 2",
+     "fn": "draw",
+     "tx": "0xb8ccaec300fdbf2e573a03504c2e01b3b8f549891c746b20a6c57134e45658f6",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907488",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 400000000000000000 wei; principal now 800000000000000000 wei",
+       "CREDIT: 400000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "800000000000000000"
+     },
+     "at": 1794907603
+    },
+    {
+     "label": "Apply time",
+     "fn": "apply_time",
+     "tx": "0xa0624953375fcaaf7271ed85a038042b02744729b058416feeab94891cd1c43b",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911002",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 0: margin band 2 (325 bp) from now",
+       "PERIOD_END: period 1 ended; due now 16274423076923076 wei; draws stop until its official reading"
+      ],
+      "ok": true
+     },
+     "at": 1794911037
+    },
+    {
+     "label": "Pay interest and fees due at period 1",
+     "fn": "pay",
+     "tx": "0xfdb992b86d10dfc36cce752087b138620d299a81f9a7560e9458a52ec6439479",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911194",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PAYMENT: fees 1595641025641025 wei, interest 14678782051282051 wei, principal 0 wei; excess 0 wei back",
+       "CREDIT: 16274423076923076 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794911308
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x3a18b4d36ef0c5bb3b645eb6c21724ee2ef41ac41ee69e2a0a6ddd03c7a19401",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911316",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "period": 1,
+      "kind": "READ",
+      "ok": true,
+      "reason": "",
+      "status": "BREACH",
+      "assessment": {
+       "adjusted_net_debt": "53200000",
+       "band": 4,
+       "cash_ok": true,
+       "compliant": false,
+       "cover_ok": true,
+       "cover_text": "6.76x",
+       "cure_units": "0",
+       "leverage_ok": false,
+       "leverage_text": "3.75x",
+       "margin_bp": 500,
+       "net_debt": "53200000"
+      },
+      "figures": {
+       "cash": "6300000",
+       "ltm_ebitda": "14200000",
+       "ltm_net_finance_costs": "2100000",
+       "total_debt": "59500000"
+      },
+      "source": "get_facility: period 1, attempt 1 (stored at this transaction's time)"
+     },
+     "at": 1794911358,
+     "recorded_status": "LEADER_TIMEOUT",
+     "recorded_execution": "NOT_VOTED",
+     "note": "The runner saw a leader timeout. After leader rotation the same transaction executed and stored the official reading. Later tests of period 1 were refused as repeats."
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x82c14fceb35edac5ddb971a82385d7b74ac13a8490cd80eac184afff2e791100",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_ERROR",
+     "created": "1794911485",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "BREACH",
+      "logged": [],
+      "ok": false,
+      "reverted": true,
+      "period": 1,
+      "kind": null,
+      "reason": ""
+     },
+     "at": 1794911541
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0xa1f58017ccd20ae89cf27bfdd0055cdc974d4cff630a81fb2d7ca77e8f26c84e",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_ERROR",
+     "created": "1794911670",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "BREACH",
+      "logged": [],
+      "ok": false,
+      "reverted": true,
+      "period": 1,
+      "kind": null,
+      "reason": ""
+     },
+     "at": 1794911714
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0xb215e6b9cca6632887b523e4bc02f23f683df804f37e9c7279ffde9293bd4469",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_ERROR",
+     "created": "1794911843",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "BREACH",
+      "logged": [],
+      "ok": false,
+      "reverted": true,
+      "period": 1,
+      "kind": null,
+      "reason": ""
+     },
+     "at": 1794911905
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x468d42473275591ab58bac9d63b5df63626807aa2a0de6b02edabfc03ac40bf5",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_ERROR",
+     "created": "1794912034",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "BREACH",
+      "logged": [],
+      "ok": false,
+      "reverted": true,
+      "period": 1,
+      "kind": null,
+      "reason": ""
+     },
+     "at": 1794912071
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x61fd37da887a5cb6565801c54880a2fa0e98403eb91717a1a67563e117855af1",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_ERROR",
+     "created": "1794912201",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "BREACH",
+      "logged": [],
+      "ok": false,
+      "reverted": true,
+      "period": 1,
+      "kind": null,
+      "reason": ""
+     },
+     "at": 1794912232
+    },
+    {
+     "label": "Cure too small (refused, credited back)",
+     "fn": "cure",
+     "tx": "0x54554d17ea1421fad6a04f562a063c9a825c45574496aa57f70dc4ff8c744052",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794912052",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "BREACH",
+      "logged": [
+       "CREDIT: 178171762820512820 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (refused: not enough to fix the leverage test: fees and interest owed come first, then the prepayment that counts; send at least 355377179487179487 wei now); withdraw it with withdraw()"
+      ],
+      "ok": false,
+      "refunded": "178171762820512820",
+      "error": "not enough to fix the leverage test: fees and interest owed come first, then the prepayment that counts; send at least 355377179487179487 wei now"
+     },
+     "at": 1794912088
+    },
+    {
+     "label": "Equity cure (quote plus a cushion that comes back)",
+     "fn": "cure",
+     "tx": "0xd812732b2077748a4aed9dd4aeee760a8b96f97f0447fb4444981e12f2b973d0",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794912286",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "CURED: period 1: 350000000000000000 wei of principal prepaid (3500000 EUR against net debt) after fees 70000000000000 wei and interest 6312179487179487 wei; leverage 3.50x",
+       "CREDIT: 356382179487179487 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (equity cure applied); withdraw it with withdraw()",
+       "CREDIT: 9961346153846154 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (cure excess back); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794912322
+    },
+    {
+     "label": "Test period 2",
+     "fn": "test_period",
+     "tx": "0xa2ebec2e111a91e9435446a85656663aca459849e8c0ab19d0fc48e2773c888c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794914829",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 1: margin band 4 (500 bp) from now",
+       "PERIOD_END: period 2 ended; due now 6959695512820513 wei; draws stop until its official reading",
+       "AVAILABILITY_END: 200000000000000000 wei undrawn back to the lender",
+       "OFFICIAL_READING: period 2: compliant; leverage 3.07x, cover 7.04x, band 3",
+       "CREDIT: 200000000000000000 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (undrawn commitment back at availability end); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "period": 2,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "45400000",
+       "band": 3,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "7.04x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "3.07x",
+       "margin_bp": 400,
+       "net_debt": "45400000"
+      },
+      "figures": {
+       "cash": "6600000",
+       "ltm_ebitda": "14800000",
+       "ltm_net_finance_costs": "2100000",
+       "total_debt": "52000000"
+      }
+     },
+     "at": 1794915004
+    },
+    {
+     "label": "Repay in full at maturity",
+     "fn": "pay",
+     "tx": "0xbd9845c4f11a682920c95f36ed13b18bbfa90b1a9de9d4776bb2061131ef19ae",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794915017",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "CLOSED",
+      "logged": [
+       "PAYMENT: fees 154743589743590 wei, interest 7719375000000000 wei, principal 450000000000000000 wei; excess 1481730769230769 wei back",
+       "CLOSED: repaid in full",
+       "CREDIT: 457874118589743590 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()",
+       "CREDIT: 1481730769230769 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (payment excess back); withdraw it with withdraw()",
+       "CREDIT: 25000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (DSRA back to the borrower at closing); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794915092
+    }
+   ],
+   "id": "3",
+   "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+   "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+   "cure_quote": {
+    "at": 1794912277,
+    "currency": "EUR",
+    "deadline": 1794914400,
+    "note": "amounts owed grow every second: quote for the time the cure will be sent; any surplus comes back",
+    "owed_first": "6343525641025641",
+    "period": 1,
+    "possible": true,
+    "principal_prepayment": "350000000000000000",
+    "units": "3500000",
+    "wei": "356343525641025641"
+   },
+   "final": {
+    "status": "CLOSED",
+    "closed_reason": "repaid in full",
+    "money": {
+     "default_interest_accrued": "0",
+     "drawn_total": "800000000000000000",
+     "dsra_applied": "0",
+     "dsra_held": "0",
+     "fees_accrued": "1820384615384615",
+     "fees_owed": "0",
+     "interest_accrued": "28710336538461538",
+     "interest_owed": "0",
+     "paid_fees": "1820384615384615",
+     "paid_interest": "28710336538461538",
+     "paid_principal": "800000000000000000",
+     "payoff": "0",
+     "principal": "0",
+     "undrawn_held": "0"
+    },
+    "events": [],
+    "periods": [
+     "COMPLIANT",
+     "CURED",
+     "COMPLIANT"
+    ],
+    "written_off": null
+   },
+   "period1_official": {
+    "agreed": "validators agreed the outcome kind and all four figures exactly",
+    "assessment": {
+     "adjusted_net_debt": "53200000",
+     "band": 4,
+     "cash_ok": true,
+     "compliant": false,
+     "cover_ok": true,
+     "cover_text": "6.76x",
+     "cure_units": "0",
+     "leverage_ok": false,
+     "leverage_text": "3.75x",
+     "margin_bp": 500,
+     "net_debt": "53200000"
+    },
+    "at": 1794911316,
+    "attempt": 1,
+    "by": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+    "figures": {
+     "cash": "6300000",
+     "ltm_ebitda": "14200000",
+     "ltm_net_finance_costs": "2100000",
+     "total_debt": "59500000"
+    },
+    "url": "https://privatecredit.brilliantnodes.com/reports/brenthollow/bradbury-2/period-1.html"
+   },
+   "note": "merged with bradbury-bradbury-2-brenthollow-continued.json: continuation after the period-1 test thread stopped"
+  },
+  "oskendale": {
+   "case": "oskendale",
+   "company": "Oskendale Retail Group",
+   "network": "bradbury",
+   "steps": [
+    {
+     "label": "Offer the facility (commitment deposited)",
+     "fn": "create",
+     "tx": "0xa0e068dc2061ee4c92d0e9f3469718cfea8ca30ecd65a592587cbb9c4b21e235",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903066",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "ok": true,
+      "id": "4",
+      "dsra_required": "25000000000000000"
+     },
+     "at": 1794903108
+    },
+    {
+     "label": "Accept: fund the DSRA",
+     "fn": "accept",
+     "tx": "0x2aa28f1bdeeec916887e71e160e9e8f275462a2a47f2ca0aa009198bfcfbaaea",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903158",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "ACCEPTED: DSRA 25000000000000000 wei funded"
+      ],
+      "ok": true
+     },
+     "at": 1794903193
+    },
+    {
+     "label": "Test period 0",
+     "fn": "test_period",
+     "tx": "0x502f9eb1acc536f98a922f7bb646089b6e5318f93f43375056a29d2a3eb6b319",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907148",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PERIOD_END: period 0 ended; due now 1199358974358974 wei; draws stop until its official reading",
+       "OFFICIAL_READING: period 0: compliant; leverage 2.20x, cover 4.26x, band 1"
+      ],
+      "ok": true,
+      "period": 0,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "21500000",
+       "band": 1,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "4.26x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "2.20x",
+       "margin_bp": 250,
+       "net_debt": "21500000"
+      },
+      "figures": {
+       "cash": "3500000",
+       "ltm_ebitda": "9800000",
+       "ltm_net_finance_costs": "2300000",
+       "total_debt": "25000000"
+      }
+     },
+     "at": 1794907338
+    },
+    {
+     "label": "Draw",
+     "fn": "draw",
+     "tx": "0xc8601f5fc9e41fe81c8315e0724c1882796d6fe0be84a26700340554cee24f05",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907352",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 400000000000000000 wei; principal now 400000000000000000 wei",
+       "CREDIT: 400000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "400000000000000000"
+     },
+     "at": 1794907493
+    },
+    {
+     "label": "Apply time",
+     "fn": "apply_time",
+     "tx": "0x7639dbe90d6c6f3d00ed9e477f2de33701b361ef9b3c98c359ab8b1388af6a13",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911033",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 0: margin band 1 (250 bp) from now",
+       "PERIOD_END: period 1 ended; due now 8638076923076922 wei; draws stop until its official reading"
+      ],
+      "ok": true
+     },
+     "at": 1794911062
+    },
+    {
+     "label": "Pay interest and fees due at period 1",
+     "fn": "pay",
+     "tx": "0x9c97c60fc90325b838f326b8276f930c4520e2e685d7fa32b452f8af712f641b",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911304",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PAYMENT: fees 2104230769230769 wei, interest 6533846153846153 wei, principal 0 wei; excess 0 wei back",
+       "CREDIT: 8638076923076922 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794911339
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0xfecffdad20e3e5e28bb90af69933835090fa1b484dc57235ac92cd852c0c6988",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911382",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "BREACH",
+      "logged": [
+       "OFFICIAL_READING: period 1: BREACH (interest cover); leverage 3.04x, cover 3.11x, band 3"
+      ],
+      "ok": true,
+      "period": 1,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "24600000",
+       "band": 3,
+       "cash_ok": true,
+       "compliant": false,
+       "cover_ok": false,
+       "cover_text": "3.11x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "3.04x",
+       "margin_bp": 400,
+       "net_debt": "24600000"
+      },
+      "figures": {
+       "cash": "2400000",
+       "ltm_ebitda": "8100000",
+       "ltm_net_finance_costs": "2600000",
+       "total_debt": "27000000"
+      }
+     },
+     "at": 1794911477
+    },
+    {
+     "label": "Apply time at the cure deadline (E1 falls)",
+     "fn": "apply_time",
+     "tx": "0xbe383641d7363f342991010d64cd4f5a98a7371ac4291e06260342d546dda2ac",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794914440",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "DEFAULT",
+      "logged": [
+       "WINDOW_CLOSE: period 1: margin band 3 (400 bp) from now",
+       "EVENT_OF_DEFAULT: E1 (period 1): covenant breach not cured or waived by the cure deadline"
+      ],
+      "ok": true
+     },
+     "at": 1794914477
+    },
+    {
+     "label": "Accelerate after the grace period (undrawn credited back, DSRA applied)",
+     "fn": "accelerate",
+     "tx": "0x550eda51594282db6606b01113f886e95976bef070d20e4e79a2045aa6b2074a",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794915369",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "ACCELERATED",
+      "logged": [
+       "PERIOD_END: period 2 ended; due now 9211538461538462 wei; draws stop until its official reading",
+       "AVAILABILITY_END: 600000000000000000 wei undrawn back to the lender",
+       "ACCELERATED: DSRA applied: fees 653076923076923 wei, interest 10445384615384616 wei, principal 13901538461538461 wei; outstanding 386098461538461539 wei now due",
+       "CREDIT: 600000000000000000 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (undrawn commitment back at availability end); withdraw it with withdraw()",
+       "CREDIT: 25000000000000000 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (DSRA applied on acceleration); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794915412
+    },
+    {
+     "label": "Close with a write-off",
+     "fn": "close",
+     "tx": "0xc3669a239e178c27649732a8e135e3c176c2677c1f95756b6c2a23c2db859310",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794915550",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "CLOSED",
+      "logged": [
+       "CLOSED: written off: principal 386098461538461539 wei, fees 0 wei, interest 492770536489152 wei"
+      ],
+      "ok": true
+     },
+     "at": 1794915585
+    }
+   ],
+   "id": "4",
+   "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+   "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+   "cure_quote": {
+    "period": 1,
+    "possible": false,
+    "reason": "a cure counts against net debt, so it can fix only the leverage test; interest cover or minimum cash also failed (ask the lender for a waiver)"
+   },
+   "final": {
+    "status": "CLOSED",
+    "closed_reason": "closed by the lender after acceleration",
+    "money": {
+     "default_interest_accrued": "586517719921104",
+     "drawn_total": "400000000000000000",
+     "dsra_applied": "25000000000000000",
+     "dsra_held": "0",
+     "fees_accrued": "2757307692307692",
+     "fees_owed": "0",
+     "interest_accrued": "17472001305719921",
+     "interest_owed": "492770536489152",
+     "paid_fees": "2757307692307692",
+     "paid_interest": "16979230769230769",
+     "paid_principal": "13901538461538461",
+     "payoff": "492770536489152",
+     "principal": "0",
+     "undrawn_held": "0"
+    },
+    "events": [
+     {
+      "at": 1794914400,
+      "code": "E1",
+      "period": 1,
+      "remedied_at": 0,
+      "waived_at": 0
+     }
+    ],
+    "periods": [
+     "COMPLIANT",
+     "BREACH",
+     "NOT_TESTED"
+    ],
+    "written_off": {
+     "fees": "0",
+     "interest": "492770536489152",
+     "principal": "386098461538461539"
+    }
+   }
+  },
+  "tarrowmere": {
+   "case": "tarrowmere",
+   "company": "Tarrowmere Aerospace Components",
+   "network": "bradbury",
+   "steps": [
+    {
+     "label": "Offer the facility (commitment deposited)",
+     "fn": "create",
+     "tx": "0x5bbec88602443fca1574d2b15ac505974e2d64dcfbc707a00853eec13ffef3ed",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903116",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "ok": true,
+      "id": "5",
+      "dsra_required": "25000000000000000"
+     },
+     "at": 1794903156
+    },
+    {
+     "label": "Accept: fund the DSRA",
+     "fn": "accept",
+     "tx": "0x064cf0340218db36d85ad49f95ee1887a33535701447282c8d1b10a4486a30f4",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794903189",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "ACCEPTED: DSRA 25000000000000000 wei funded"
+      ],
+      "ok": true
+     },
+     "at": 1794903225
+    },
+    {
+     "label": "Test period 0",
+     "fn": "test_period",
+     "tx": "0x9224bf3c5969df9599daa6f66d167cd1fd45b10de97ebe9190c372e605adc971",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907573",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PERIOD_END: period 0 ended; due now 1189423076923076 wei; draws stop until its official reading",
+       "OFFICIAL_READING: period 0: compliant; leverage 2.00x, cover 7.00x, band 1"
+      ],
+      "ok": true,
+      "period": 0,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "42000000",
+       "band": 1,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "7.00x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "2.00x",
+       "margin_bp": 250,
+       "net_debt": "42000000"
+      },
+      "figures": {
+       "cash": "10000000",
+       "ltm_ebitda": "21000000",
+       "ltm_net_finance_costs": "3000000",
+       "total_debt": "52000000"
+      }
+     },
+     "at": 1794907667
+    },
+    {
+     "label": "Draw",
+     "fn": "draw",
+     "tx": "0xadc3502d106ace7c9fe9c5281e41ac30434419d592dd05608cfdba304f330572",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794907767",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "DRAW: 200000000000000000 wei; principal now 200000000000000000 wei",
+       "CREDIT: 200000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (draw); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "principal": "200000000000000000"
+     },
+     "at": 1794907796
+    },
+    {
+     "label": "Apply time",
+     "fn": "apply_time",
+     "tx": "0xd11dc994941e9dce75e16f108668af6184691b90cc098fbfcc993dedba8fd48a",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794910932",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WINDOW_CLOSE: period 0: margin band 1 (250 bp) from now",
+       "PERIOD_END: period 1 ended; due now 5161346153846153 wei; draws stop until its official reading"
+      ],
+      "ok": true
+     },
+     "at": 1794910969
+    },
+    {
+     "label": "Pay interest and fees due at period 1",
+     "fn": "pay",
+     "tx": "0xb87dcdea7c5d690da4f8ea1e7aa6c099bb23f9925752e53f66bd94f272aa523e",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911107",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PAYMENT: fees 2323717948717948 wei, interest 2837628205128205 wei, principal 0 wei; excess 0 wei back",
+       "CREDIT: 5161346153846153 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794911143
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x6789c88130532883caaf7b0dc51d8bdcb703568b67bdae32dacb8f2c9572786c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911150",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [],
+      "ok": true,
+      "period": 1,
+      "kind": "NOT_PUBLISHED",
+      "reason": ""
+     },
+     "at": 1794911226
+    },
+    {
+     "label": "Test period 1",
+     "fn": "test_period",
+     "tx": "0x40068269c990133bda27fc3c2aee0b3b9cb83f66bfcd17df64badd8fec62e206",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794911709",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [],
+      "ok": true,
+      "period": 1,
+      "kind": "NO_READING",
+      "reason": "N2_UNITS_MISSING"
+     },
+     "at": 1794911884
+    },
+    {
+     "label": "Apply time at the cure deadline (E2 falls)",
+     "fn": "apply_time",
+     "tx": "0x90c9c68510fcd5453f2d601f77545d29539b765963596ca9dc9d7862fda75742",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794914473",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "DEFAULT",
+      "logged": [
+       "WINDOW_CLOSE: period 1: no official reading, report missing; top band (500 bp) from now",
+       "EVENT_OF_DEFAULT: E2 (period 1): no official reading by the window close, not waived by the cure deadline"
+      ],
+      "ok": true
+     },
+     "at": 1794914515
+    },
+    {
+     "label": "Lender waives the covenant for period 1",
+     "fn": "waive",
+     "tx": "0x5545de332c05b56487abeda6bf7cde0a50e446118c0fa0aec0f0cc47d3a97f03",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794914528",
+     "from": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "WAIVER: period 1 (covenant): missing report, E2"
+      ],
+      "ok": true
+     },
+     "at": 1794914563
+    },
+    {
+     "label": "Test period 2",
+     "fn": "test_period",
+     "tx": "0x85b012ff7a103454a583c7b5980cbcae799404110e796e2c40ece899723fea0c",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794914842",
+     "from": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B",
+     "result": {
+      "status": "ACTIVE",
+      "logged": [
+       "PERIOD_END: period 2 ended; due now 5455897435897436 wei; draws stop until its official reading",
+       "AVAILABILITY_END: 800000000000000000 wei undrawn back to the lender",
+       "OFFICIAL_READING: period 2: compliant; leverage 1.90x, cover 7.16x, band 1",
+       "CREDIT: 800000000000000000 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (undrawn commitment back at availability end); withdraw it with withdraw()"
+      ],
+      "ok": true,
+      "period": 2,
+      "kind": "READ",
+      "reason": "",
+      "assessment": {
+       "adjusted_net_debt": "40700000",
+       "band": 1,
+       "cash_ok": true,
+       "compliant": true,
+       "cover_ok": true,
+       "cover_text": "7.16x",
+       "cure_units": "0",
+       "leverage_ok": true,
+       "leverage_text": "1.90x",
+       "margin_bp": 250,
+       "net_debt": "40700000"
+      },
+      "figures": {
+       "cash": "9800000",
+       "ltm_ebitda": "21500000",
+       "ltm_net_finance_costs": "3000000",
+       "total_debt": "50500000"
+      }
+     },
+     "at": 1794915049
+    },
+    {
+     "label": "Repay in full at maturity",
+     "fn": "pay",
+     "tx": "0x2b32ffae7f7cae5d34c8a6d4c5e7bf9f3e4e95af3df9d31acf403f69ccdaff3e",
+     "status": "MAJORITY_AGREE",
+     "execution": "FINISHED_WITH_RETURN",
+     "created": "1794915066",
+     "from": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+     "result": {
+      "status": "CLOSED",
+      "logged": [
+       "PAYMENT: fees 921282051282052 wei, interest 5003846153846153 wei, principal 200000000000000000 wei; excess 1208974358974359 wei back",
+       "CLOSED: repaid in full",
+       "CREDIT: 205925128205128205 wei to 0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734 (payment); withdraw it with withdraw()",
+       "CREDIT: 1208974358974359 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (payment excess back); withdraw it with withdraw()",
+       "CREDIT: 25000000000000000 wei to 0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7 (DSRA back to the borrower at closing); withdraw it with withdraw()"
+      ],
+      "ok": true
+     },
+     "at": 1794915214
+    }
+   ],
+   "id": "5",
+   "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+   "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+   "final": {
+    "status": "CLOSED",
+    "closed_reason": "repaid in full",
+    "money": {
+     "default_interest_accrued": "32820512820512",
+     "drawn_total": "200000000000000000",
+     "dsra_applied": "0",
+     "dsra_held": "0",
+     "fees_accrued": "3245000000000000",
+     "fees_owed": "0",
+     "interest_accrued": "7841474358974358",
+     "interest_owed": "0",
+     "paid_fees": "3245000000000000",
+     "paid_interest": "7841474358974358",
+     "paid_principal": "200000000000000000",
+     "payoff": "0",
+     "principal": "0",
+     "undrawn_held": "0"
+    },
+    "events": [
+     {
+      "at": 1794914400,
+      "code": "E2",
+      "period": 1,
+      "remedied_at": 0,
+      "waived_at": 1794914528
+     }
+    ],
+    "periods": [
+     "COMPLIANT",
+     "WAIVED",
+     "COMPLIANT"
+    ],
+    "written_off": null
+   }
+  },
+  "withdrawals": [
+   {
+    "role": "lender",
+    "address": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734",
+    "credited": "4727133733974358969",
+    "tx": "0x58d7d324076f4f98db06f1fff3db68232ee3bf59429ab894043ae4ccbb753dac",
+    "status": "MAJORITY_AGREE",
+    "execution": "FINISHED_WITH_RETURN",
+    "finalized": true,
+    "claimable_after": "0",
+    "balance_change": "4826933212194366733",
+    "note": "balance change = credit minus this transaction's fees"
+   },
+   {
+    "role": "borrower",
+    "address": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+    "credited": "3118959391025641024",
+    "tx": "0x5b759ae6b0789a1dbb8512ee2195e5d625a1015b2477bf558984a626d7f3dda8",
+    "status": "MAJORITY_AGREE",
+    "execution": "FINISHED_WITH_RETURN",
+    "finalized": true,
+    "claimable_after": "0",
+    "balance_change": "3118821915985639730",
+    "note": "balance change = credit minus this transaction's fees"
+   },
+   {
+    "contract_balance": "0",
+    "locked": "0",
+    "claims_total": "0"
+   }
+  ]
+ },
+ "merged_from": [
+  "bradbury-bradbury-2.json",
+  "bradbury-bradbury-2-brenthollow-continued.json"
+ ]
+}

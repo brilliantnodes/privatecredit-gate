@@ -1,0 +1,1519 @@
+{
+  "address": "0x6f07a7aa418701c7f02C54BE13cA776De7B1f478",
+  "tag": "studio-2",
+  "e0": 1794906000,
+  "cases": {
+    "ashcarrow": {
+      "case": "ashcarrow",
+      "company": "Ashcarrow Logistics Ltd",
+      "network": "studio",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x262f27d4f7407507b5c3f8354a4aa52bdbcc52f30a3fc3fae45c1cb5e3b12682",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "1",
+            "ok": true
+          },
+          "at": 1794902935
+        },
+        {
+          "label": "Accept with the wrong DSRA (refused, credited back)",
+          "fn": "accept",
+          "tx": "0x4039351893f80cc57509de3a2f8df243ba205900e7b2ff50ca6b67b22508cdf8",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "error": "send exactly the DSRA: 250000000000000000 wei",
+            "ok": false,
+            "refunded": "249999999999999999"
+          },
+          "at": 1794902952
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xb6e58b58c3219114e3fffe1dcb8d55272d7b8115c8ce020806d1294366563cd6",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794902969
+        },
+        {
+          "label": "Test period 0",
+          "fn": "test_period",
+          "tx": "0xfde2757233bbb0a80489ee76f9cf12c15f6c2099f2cc0eed8eefe51597f45cd5",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "31700000",
+              "band": 1,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "8.55x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "1.73x",
+              "margin_bp": 250,
+              "net_debt": "31700000"
+            },
+            "figures": {
+              "cash": "6900000",
+              "ltm_ebitda": "18400000",
+              "ltm_net_finance_costs": "2150000",
+              "total_debt": "38600000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 0,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794906105
+        },
+        {
+          "label": "Draw tranche 1",
+          "fn": "draw",
+          "tx": "0x98632066d687db9564a2cc70d3c1ad5df79e667462f07a05102fccaa913781e9",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "4000000000000000000"
+          },
+          "at": 1794906219
+        },
+        {
+          "label": "Draw tranche 2",
+          "fn": "draw",
+          "tx": "0x73c2642b94f519cec9e20ac16e00af29e046d012158e31dad8c47da1f55549a4",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "8000000000000000000"
+          },
+          "at": 1794906239
+        },
+        {
+          "label": "Apply time",
+          "fn": "apply_time",
+          "tx": "0xfd717667bf7d30b8cef5efa9eb7d20cd45c808cd333712602ccf2de4be559ab8",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "ACTIVE"
+          },
+          "at": 1794910011
+        },
+        {
+          "label": "Pay interest and fees due at period 1",
+          "fn": "pay",
+          "tx": "0xe47cb7d3afe5c3d8a240c0e25bbdb6865876440bc68669d10aa99b01bc2a1f12",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "0",
+            "fees": "12755128205128205",
+            "interest": "143638461538461538",
+            "ok": true,
+            "principal": "0",
+            "status": "ACTIVE"
+          },
+          "at": 1794910029
+        },
+        {
+          "label": "Test period 1",
+          "fn": "test_period",
+          "tx": "0x479376323aba7b1dd5d4e3e16406e5a78c69d9e56b05e58e64a4012245694d11",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "33800000",
+              "band": 1,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "8.66x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "1.79x",
+              "margin_bp": 250,
+              "net_debt": "33800000"
+            },
+            "figures": {
+              "cash": "7400000",
+              "ltm_ebitda": "18900000",
+              "ltm_net_finance_costs": "2180000",
+              "total_debt": "41200000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 1,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794910088
+        },
+        {
+          "label": "Draw tranche 3",
+          "fn": "draw",
+          "tx": "0x6d6aa3e92f5da958c5d8b0049ab0cdb23d197c4673c7bb9465c724e31dd47896",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "10000000000000000000"
+          },
+          "at": 1794910246
+        },
+        {
+          "label": "Test period 2",
+          "fn": "test_period",
+          "tx": "0xd7214aca08d0a5d15969c61e8ce98f2a7c9859f4b1a6f55536a6e6c2b74842d7",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "32100000",
+              "band": 1,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "8.77x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "1.67x",
+              "margin_bp": 250,
+              "net_debt": "32100000"
+            },
+            "figures": {
+              "cash": "8000000",
+              "ltm_ebitda": "19300000",
+              "ltm_net_finance_costs": "2200000",
+              "total_debt": "40100000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 2,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794913880
+        },
+        {
+          "label": "Repay in full at maturity",
+          "fn": "pay",
+          "tx": "0x2b2f229e498c29c9b6225918fe31a133068efb34cbbe2c10b6fac6d4372a2994",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "18509615384615384",
+            "fees": "48717948717948",
+            "interest": "197428846153846154",
+            "ok": true,
+            "principal": "10000000000000000000",
+            "status": "CLOSED"
+          },
+          "at": 1794914055
+        },
+        {
+          "label": "Withdraw credits (lender)",
+          "fn": "withdraw",
+          "tx": "0xac5adf68e905d9f9bc1293aa0e0efde84d88e701b2c25bb7745ce75dcffe4a94",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "10353871153846153845",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914070
+        },
+        {
+          "label": "Withdraw credits (borrower)",
+          "fn": "withdraw",
+          "tx": "0xbbf5e4eb6eac229b21d17cca65128f88b1b47375e57fda338e2288252268a47e",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "10518509615384615383",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914084
+        }
+      ],
+      "id": "1",
+      "lender": "0x6d8279514c96eb6453886506340dD03E49Dbe000",
+      "borrower": "0x1136a8F18B415991fA70FEF3abf8dc3119F2731B",
+      "final": {
+        "status": "CLOSED",
+        "closed_reason": "repaid in full",
+        "money": {
+          "default_interest_accrued": "0",
+          "drawn_total": "10000000000000000000",
+          "dsra_applied": "0",
+          "dsra_held": "0",
+          "fees_accrued": "12803846153846153",
+          "fees_owed": "0",
+          "interest_accrued": "341067307692307692",
+          "interest_owed": "0",
+          "paid_fees": "12803846153846153",
+          "paid_interest": "341067307692307692",
+          "paid_principal": "10000000000000000000",
+          "payoff": "0",
+          "principal": "0",
+          "undrawn_held": "0"
+        },
+        "events": [],
+        "periods": [
+          "COMPLIANT",
+          "COMPLIANT",
+          "COMPLIANT"
+        ],
+        "written_off": null
+      }
+    },
+    "quillstrand": {
+      "case": "quillstrand",
+      "company": "Quillstrand Materials plc",
+      "network": "studio",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0xaac3b0ad5f40feb632e73cf25999911eaf427f4ad4936d37cf75e06f3ace0c2f",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "2",
+            "ok": true
+          },
+          "at": 1794902940
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xf3af2787d735128cf096ad03f394e5693a789886c00042eaf7c1d7c9ece74a43",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794902957
+        },
+        {
+          "label": "Test period 0",
+          "fn": "test_period",
+          "tx": "0xe7c31c226a6fb75cddfef716f624adecde3663e98473167972f62900b8e14134",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "30300000",
+              "band": 1,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "5.90x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "2.45x",
+              "margin_bp": 250,
+              "net_debt": "30300000"
+            },
+            "figures": {
+              "cash": "9200000",
+              "ltm_ebitda": "12400000",
+              "ltm_net_finance_costs": "2100000",
+              "total_debt": "39500000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 0,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794906216
+        },
+        {
+          "label": "Draw",
+          "fn": "draw",
+          "tx": "0x6bb3d03365de21294a74a729d9191c5f9d5f13bc0111751cd86c90a0dfa52933",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "4000000000000000000"
+          },
+          "at": 1794906234
+        },
+        {
+          "label": "Apply time",
+          "fn": "apply_time",
+          "tx": "0x509c984d0e4d00a2fb95be5fe95c6ecc5de02e51ae0abbcbf008951b5ed72144",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "ACTIVE"
+          },
+          "at": 1794910007
+        },
+        {
+          "label": "Pay interest and fees due at period 1",
+          "fn": "pay",
+          "tx": "0xfabe176b0af5c9b08e027682b1f1d9573dd83daee01e375fc4920edef734b83c",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "0",
+            "fees": "17792307692307692",
+            "interest": "70596153846153845",
+            "ok": true,
+            "principal": "0",
+            "status": "ACTIVE"
+          },
+          "at": 1794910025
+        },
+        {
+          "label": "Test period 1",
+          "fn": "test_period",
+          "tx": "0xc4cd9cb44d97552eb4f137bb75283870bd58627d982be09748e4f6778a31a2b8",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "34900000",
+              "band": 3,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "5.27x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "3.01x",
+              "margin_bp": 400,
+              "net_debt": "34900000"
+            },
+            "figures": {
+              "cash": "8100000",
+              "ltm_ebitda": "11600000",
+              "ltm_net_finance_costs": "2200000",
+              "total_debt": "43000000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 1,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794910140
+        },
+        {
+          "label": "Apply time after window close 1 (margin steps up)",
+          "fn": "apply_time",
+          "tx": "0x73619cde478e44740b1125aec25a1c981acc8dc0dc14b745683f18c566042d9f",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "ACTIVE"
+          },
+          "at": 1794911770
+        },
+        {
+          "label": "Test period 2",
+          "fn": "test_period",
+          "tx": "0x29b0014b76bfdbe300b24cc42234581220d38e8a0123d96418af55fd44ac4c85",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "34200000",
+              "band": 2,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "5.36x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "2.90x",
+              "margin_bp": 325,
+              "net_debt": "34200000"
+            },
+            "figures": {
+              "cash": "8400000",
+              "ltm_ebitda": "11800000",
+              "ltm_net_finance_costs": "2200000",
+              "total_debt": "42600000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 2,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794913901
+        },
+        {
+          "label": "Repay in full at maturity",
+          "fn": "pay",
+          "tx": "0x6c905c3de293795bcb746d07df39445b80ef4707c2f212484491323ad109c4ef",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "14084615384615384",
+            "fees": "7288461538461538",
+            "interest": "88896153846153847",
+            "ok": true,
+            "principal": "4000000000000000000",
+            "status": "CLOSED"
+          },
+          "at": 1794914055
+        },
+        {
+          "label": "Withdraw credits (lender)",
+          "fn": "withdraw",
+          "tx": "0x5830d6b2cdb305659666e898117e02ef7fe898c0b4a4006fc2ae2f9d01514e7b",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "10184573076923076922",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914066
+        },
+        {
+          "label": "Withdraw credits (borrower)",
+          "fn": "withdraw",
+          "tx": "0x2b6822e74d913c4e559543851f5dc3f8e190442c68ed4b1e4a6fe1271b1509fb",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "4264084615384615384",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914079
+        }
+      ],
+      "id": "2",
+      "lender": "0x410733721c7EBF9fFEC38552622EbF753f280E57",
+      "borrower": "0x5C792c784f1159bc22193C7DaAF20BA0F1004487",
+      "final": {
+        "status": "CLOSED",
+        "closed_reason": "repaid in full",
+        "money": {
+          "default_interest_accrued": "0",
+          "drawn_total": "4000000000000000000",
+          "dsra_applied": "0",
+          "dsra_held": "0",
+          "fees_accrued": "25080769230769230",
+          "fees_owed": "0",
+          "interest_accrued": "159492307692307692",
+          "interest_owed": "0",
+          "paid_fees": "25080769230769230",
+          "paid_interest": "159492307692307692",
+          "paid_principal": "4000000000000000000",
+          "payoff": "0",
+          "principal": "0",
+          "undrawn_held": "0"
+        },
+        "events": [],
+        "periods": [
+          "COMPLIANT",
+          "COMPLIANT",
+          "COMPLIANT"
+        ],
+        "written_off": null
+      }
+    },
+    "brenthollow": {
+      "case": "brenthollow",
+      "company": "Brenthollow Foods SA",
+      "network": "studio",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x0436f20f3819deb92e28369584d391cd6ee7b67031d9f21a330ef2a702298ce8",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "3",
+            "ok": true
+          },
+          "at": 1794902946
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0x83ebbba1be042b1f89b7ec7ecd498945cdbb22527c1871196d97f42a3d40991c",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794902959
+        },
+        {
+          "label": "Test period 0",
+          "fn": "test_period",
+          "tx": "0x9836a0743b694e50372d81cc648fd14f07e43977dc4088f84a7339a4de2823ba",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "42000000",
+              "band": 2,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "7.50x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "2.80x",
+              "margin_bp": 325,
+              "net_debt": "42000000"
+            },
+            "figures": {
+              "cash": "6000000",
+              "ltm_ebitda": "15000000",
+              "ltm_net_finance_costs": "2000000",
+              "total_debt": "48000000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 0,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794906163
+        },
+        {
+          "label": "Draw tranche 1",
+          "fn": "draw",
+          "tx": "0xbc3c70f5fe048a34a2fcf0a7e66ae355eec77ed1daec750ec5610e55b2edb619",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "4000000000000000000"
+          },
+          "at": 1794906228
+        },
+        {
+          "label": "Draw tranche 2",
+          "fn": "draw",
+          "tx": "0x6a41610b9f73d94d1ba48521a2fe6f3479b8b8fa44884fc7a7c526c676cc3778",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "8000000000000000000"
+          },
+          "at": 1794906241
+        },
+        {
+          "label": "Apply time",
+          "fn": "apply_time",
+          "tx": "0x3c6b515c968e7be42cb1f94a9f258bbd5a45d3efa9c1a2273f0e06160264e459",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "ACTIVE"
+          },
+          "at": 1794910003
+        },
+        {
+          "label": "Pay interest and fees due at period 1",
+          "fn": "pay",
+          "tx": "0xeaf57b377204815608d8fcfa6d8c6c51002fe01ada49d2459f28952c1d328803",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "0",
+            "fees": "12856410256410256",
+            "interest": "156576282051282051",
+            "ok": true,
+            "principal": "0",
+            "status": "ACTIVE"
+          },
+          "at": 1794910022
+        },
+        {
+          "label": "Test period 1",
+          "fn": "test_period",
+          "tx": "0x2ed32bbb3182f9199caffcd1632b08230fd86a27e755f1b3b6a8f7d0e4739be0",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "53200000",
+              "band": 4,
+              "cash_ok": true,
+              "compliant": false,
+              "cover_ok": true,
+              "cover_text": "6.76x",
+              "cure_units": "0",
+              "leverage_ok": false,
+              "leverage_text": "3.75x",
+              "margin_bp": 500,
+              "net_debt": "53200000"
+            },
+            "figures": {
+              "cash": "6300000",
+              "ltm_ebitda": "14200000",
+              "ltm_net_finance_costs": "2100000",
+              "total_debt": "59500000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 1,
+            "reason": "",
+            "status": "BREACH"
+          },
+          "at": 1794910226
+        },
+        {
+          "label": "Cure too small (refused, credited back)",
+          "fn": "cure",
+          "tx": "0xbd1801b5efb80fefb0037dfd720a3007be95e908ddece20a1b9244f46c054d2e",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "error": "not enough to fix the leverage test: fees and interest owed come first, then the prepayment that counts; send at least 3514173076923076923 wei now",
+            "ok": false,
+            "refunded": "1762154487179487179"
+          },
+          "at": 1794910252
+        },
+        {
+          "label": "Equity cure (quote plus a cushion that comes back)",
+          "fn": "cure",
+          "tx": "0xab27f005311843d3bfbb6fd913632766919a19179dd85daf3e190fc46f7717e0",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "applied": "3524351923076923076",
+            "excess": "99957051282051283",
+            "ok": true,
+            "principal": "3500000000000000000",
+            "status": "ACTIVE",
+            "units": "3500000"
+          },
+          "at": 1794910472
+        },
+        {
+          "label": "Test period 2",
+          "fn": "test_period",
+          "tx": "0xdd161d2b40dde453a91656db20c25cafa5f8d72fbb8c31996800d927b187c529",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "45400000",
+              "band": 3,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "7.04x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "3.07x",
+              "margin_bp": 400,
+              "net_debt": "45400000"
+            },
+            "figures": {
+              "cash": "6600000",
+              "ltm_ebitda": "14800000",
+              "ltm_net_finance_costs": "2100000",
+              "total_debt": "52000000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 2,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794913927
+        },
+        {
+          "label": "Repay in full at maturity",
+          "fn": "pay",
+          "tx": "0x7647be43716a83ffa6b586c520a6e4ef28e533346d14cf2469a469e03086a042",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "15105769230769231",
+            "fees": "2136538461538462",
+            "interest": "96929567307692308",
+            "ok": true,
+            "principal": "4500000000000000000",
+            "status": "CLOSED"
+          },
+          "at": 1794914048
+        },
+        {
+          "label": "Withdraw credits (lender)",
+          "fn": "withdraw",
+          "tx": "0x0cabe48449ee5acae8537fe7855387de0460dafdde929b2f393946be687e6067",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "10292850721153846153",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914059
+        },
+        {
+          "label": "Withdraw credits (borrower)",
+          "fn": "withdraw",
+          "tx": "0xdb12363918dd6c3ddfed95deb083f56c0c8d520882b83188f13a0316e32ff933",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "10127217307692307693",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914074
+        }
+      ],
+      "id": "3",
+      "lender": "0x39CE21ccB15F98ec15aAEd23D6666cf2d66D9B01",
+      "borrower": "0xAfCdbCF4D937924C7099755983BfdDfAb4823d87",
+      "cure_quote": {
+        "at": 1794910466,
+        "currency": "EUR",
+        "deadline": 1794913500,
+        "note": "amounts owed grow every second: quote for the time the cure will be sent; any surplus comes back",
+        "owed_first": "24308974358974359",
+        "period": 1,
+        "possible": true,
+        "principal_prepayment": "3500000000000000000",
+        "units": "3500000",
+        "wei": "3524308974358974359"
+      },
+      "final": {
+        "status": "CLOSED",
+        "closed_reason": "repaid in full",
+        "money": {
+          "default_interest_accrued": "0",
+          "drawn_total": "8000000000000000000",
+          "dsra_applied": "0",
+          "dsra_held": "0",
+          "fees_accrued": "15288461538461538",
+          "fees_owed": "0",
+          "interest_accrued": "277562259615384615",
+          "interest_owed": "0",
+          "paid_fees": "15288461538461538",
+          "paid_interest": "277562259615384615",
+          "paid_principal": "8000000000000000000",
+          "payoff": "0",
+          "principal": "0",
+          "undrawn_held": "0"
+        },
+        "events": [],
+        "periods": [
+          "COMPLIANT",
+          "CURED",
+          "COMPLIANT"
+        ],
+        "written_off": null
+      }
+    },
+    "oskendale": {
+      "case": "oskendale",
+      "company": "Oskendale Retail Group",
+      "network": "studio",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0x2a39914a61cac1d7e7263e9d3b4e6ae5b9457f7093fe34a73e18f2c891a4e7c8",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "4",
+            "ok": true
+          },
+          "at": 1794902948
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0xfd0c67b0885fdf2f3305eee36620609a792a9a9f0194aa00c9caff75887dd27e",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794902964
+        },
+        {
+          "label": "Test period 0",
+          "fn": "test_period",
+          "tx": "0x3be391260762366481ae38527b7ce7d428d56e59a95d50e31aae301d25075554",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "21500000",
+              "band": 1,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "4.26x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "2.20x",
+              "margin_bp": 250,
+              "net_debt": "21500000"
+            },
+            "figures": {
+              "cash": "3500000",
+              "ltm_ebitda": "9800000",
+              "ltm_net_finance_costs": "2300000",
+              "total_debt": "25000000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 0,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794906190
+        },
+        {
+          "label": "Draw",
+          "fn": "draw",
+          "tx": "0x7dd5047c7f55534ac6efa3d1209473b005dd90ac92107aa14248b2167a7df470",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "4000000000000000000"
+          },
+          "at": 1794906234
+        },
+        {
+          "label": "Apply time",
+          "fn": "apply_time",
+          "tx": "0x2d33f04c304e8f472375c7d0803f84c0a0430e03681c0db803869d9ffa0bcaed",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "ACTIVE"
+          },
+          "at": 1794909999
+        },
+        {
+          "label": "Pay interest and fees due at period 1",
+          "fn": "pay",
+          "tx": "0x3b139ebf502b307e0cb7e1c17739049a258d7a1b99ec2528cad1d7534dce807f",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "0",
+            "fees": "17721794871794871",
+            "interest": "71128846153846153",
+            "ok": true,
+            "principal": "0",
+            "status": "ACTIVE"
+          },
+          "at": 1794910014
+        },
+        {
+          "label": "Test period 1",
+          "fn": "test_period",
+          "tx": "0x83fe682133b978229a9635d4dd6a7ccb08f33164c31cdb79467169c2a5bfef70",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "24600000",
+              "band": 3,
+              "cash_ok": true,
+              "compliant": false,
+              "cover_ok": false,
+              "cover_text": "3.11x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "3.04x",
+              "margin_bp": 400,
+              "net_debt": "24600000"
+            },
+            "figures": {
+              "cash": "2400000",
+              "ltm_ebitda": "8100000",
+              "ltm_net_finance_costs": "2600000",
+              "total_debt": "27000000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 1,
+            "reason": "",
+            "status": "BREACH"
+          },
+          "at": 1794910179
+        },
+        {
+          "label": "Apply time at the cure deadline (E1 falls)",
+          "fn": "apply_time",
+          "tx": "0x3a1411ab7911dde206f03171bc646dfe65d3df9031674feeffd7791dd0f3b162",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "DEFAULT"
+          },
+          "at": 1794913544
+        },
+        {
+          "label": "Accelerate after the grace period (undrawn credited back, DSRA applied)",
+          "fn": "accelerate",
+          "tx": "0x1c0c2f05c7a340e678391d7ae42d954d14a86460086acd823be56cb86056ee28",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "dsra_applied": "250000000000000000",
+            "ok": true,
+            "status": "ACCELERATED"
+          },
+          "at": 1794914470
+        },
+        {
+          "label": "Close with a write-off",
+          "fn": "close",
+          "tx": "0x9bd5007e94dd907e39df1c7b84c4e2f4b6f6fe861e5d1c7df356efd4c5596eb9",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "written_off": {
+              "fees": "0",
+              "interest": "4873006382314267",
+              "principal": "3860787179487179488"
+            }
+          },
+          "at": 1794914646
+        },
+        {
+          "label": "Withdraw credits (lender)",
+          "fn": "withdraw",
+          "tx": "0x793503c0753625f540785277ca4a3f3125219e2a1ce4b8031a2a77fa9e17dfdf",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "6338850641025641024",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914654
+        },
+        {
+          "label": "Withdraw credits (borrower)",
+          "fn": "withdraw",
+          "tx": "0xe80a250c4c88b3eff829ec129f6328af356fb467a4db79a72a1e24b25e368191",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "4000000000000000000",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914666
+        }
+      ],
+      "id": "4",
+      "lender": "0x1647A9CF4Ff44fF59cB8A2017D6ff55A3390e934",
+      "borrower": "0xf8a14759d3c18ccFd4CcD46B65d22fcAC6054372",
+      "cure_quote": {
+        "period": 1,
+        "possible": false,
+        "reason": "a cure counts against net debt, so it can fix only the leverage test; interest cover or minimum cash also failed (ask the lender for a waiver)"
+      },
+      "final": {
+        "status": "CLOSED",
+        "closed_reason": "closed by the lender after acceleration",
+        "money": {
+          "default_interest_accrued": "5819334493754109",
+          "drawn_total": "4000000000000000000",
+          "dsra_applied": "250000000000000000",
+          "dsra_held": "0",
+          "fees_accrued": "25023717948717948",
+          "fees_owed": "0",
+          "interest_accrued": "179487108946416831",
+          "interest_owed": "4873006382314267",
+          "paid_fees": "25023717948717948",
+          "paid_interest": "174614102564102564",
+          "paid_principal": "139212820512820512",
+          "payoff": "4873006382314267",
+          "principal": "0",
+          "undrawn_held": "0"
+        },
+        "events": [
+          {
+            "at": 1794913500,
+            "code": "E1",
+            "period": 1,
+            "remedied_at": 0,
+            "waived_at": 0
+          }
+        ],
+        "periods": [
+          "COMPLIANT",
+          "BREACH",
+          "NOT_TESTED"
+        ],
+        "written_off": {
+          "fees": "0",
+          "interest": "4873006382314267",
+          "principal": "3860787179487179488"
+        }
+      }
+    },
+    "tarrowmere": {
+      "case": "tarrowmere",
+      "company": "Tarrowmere Aerospace Components",
+      "network": "studio",
+      "steps": [
+        {
+          "label": "Offer the facility (commitment deposited)",
+          "fn": "create",
+          "tx": "0xb8adc911793337735a4b7096958ab6db57b0078660c201627f928bab6c178cf9",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "dsra_required": "250000000000000000",
+            "id": "5",
+            "ok": true
+          },
+          "at": 1794902953
+        },
+        {
+          "label": "Accept: fund the DSRA",
+          "fn": "accept",
+          "tx": "0x5311dcf2e95a4d5db72e45c6e55a139500ff64b8bc0535cb87f03aacaa5e8407",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "status": "ACTIVE"
+          },
+          "at": 1794902971
+        },
+        {
+          "label": "Test period 0",
+          "fn": "test_period",
+          "tx": "0xa116acbba88f28771860662fb9db330c51fa5cf7102d8c46e19e6e8bdcf08e12",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "42000000",
+              "band": 1,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "7.00x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "2.00x",
+              "margin_bp": 250,
+              "net_debt": "42000000"
+            },
+            "figures": {
+              "cash": "10000000",
+              "ltm_ebitda": "21000000",
+              "ltm_net_finance_costs": "3000000",
+              "total_debt": "52000000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 0,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794906129
+        },
+        {
+          "label": "Draw",
+          "fn": "draw",
+          "tx": "0xc86e7547939944021b17a684485cc94a21494d7c17493c97b62c8510b00a5b04",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "principal": "2000000000000000000"
+          },
+          "at": 1794906225
+        },
+        {
+          "label": "Apply time",
+          "fn": "apply_time",
+          "tx": "0x1b098cae151d8d2836b36b47d5e169adaa9cdacf91928276ab78e629c8310d05",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "ACTIVE"
+          },
+          "at": 1794909999
+        },
+        {
+          "label": "Pay interest and fees due at period 1",
+          "fn": "pay",
+          "tx": "0xfcebe8307bd6c7ae791fbbb7679479d84308ead53f17722e756098032368caa4",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "0",
+            "fees": "20104487179487179",
+            "interest": "35976282051282051",
+            "ok": true,
+            "principal": "0",
+            "status": "ACTIVE"
+          },
+          "at": 1794910018
+        },
+        {
+          "label": "Test period 1",
+          "fn": "test_period",
+          "tx": "0x82c8a8e935f8cab8fa733283906dea2e9e709df8d3e9251556125f3a499435b5",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "kind": "NOT_PUBLISHED",
+            "ok": true,
+            "period": 1,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794910111
+        },
+        {
+          "label": "Test period 1",
+          "fn": "test_period",
+          "tx": "0xf379e06955a985844780e981d039b7b37de3de9e1add1bef296262acf51157d4",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "kind": "NO_READING",
+            "ok": true,
+            "period": 1,
+            "reason": "N2_UNITS_MISSING",
+            "status": "ACTIVE"
+          },
+          "at": 1794910838
+        },
+        {
+          "label": "Apply time at the cure deadline (E2 falls)",
+          "fn": "apply_time",
+          "tx": "0x486708f44b4afc6c5503f26290e6e2c7796c0b77488e9c3986377b107789b5c5",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "payouts": [],
+            "status": "DEFAULT"
+          },
+          "at": 1794913536
+        },
+        {
+          "label": "Lender waives the covenant for period 1",
+          "fn": "waive",
+          "tx": "0xd0047a96be85f2a53ac9f6b4595b7b592e9d3e2c5656c5771074df4104f14e66",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "ok": true,
+            "status": "ACTIVE",
+            "waived": [
+              "missing report",
+              "E2"
+            ]
+          },
+          "at": 1794913626
+        },
+        {
+          "label": "Test period 2",
+          "fn": "test_period",
+          "tx": "0xac6bdc01eeadf4cffb6b9cc1634d6478986d22d22a8df45874bec3f935d8e972",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "assessment": {
+              "adjusted_net_debt": "40700000",
+              "band": 1,
+              "cash_ok": true,
+              "compliant": true,
+              "cover_ok": true,
+              "cover_text": "7.16x",
+              "cure_units": "0",
+              "leverage_ok": true,
+              "leverage_text": "1.90x",
+              "margin_bp": 250,
+              "net_debt": "40700000"
+            },
+            "figures": {
+              "cash": "9800000",
+              "ltm_ebitda": "21500000",
+              "ltm_net_finance_costs": "3000000",
+              "total_debt": "50500000"
+            },
+            "kind": "READ",
+            "ok": true,
+            "period": 2,
+            "reason": "",
+            "status": "ACTIVE"
+          },
+          "at": 1794913955
+        },
+        {
+          "label": "Repay in full at maturity",
+          "fn": "pay",
+          "tx": "0x6514fde517de6244f20c5543d3c97e06c026dc6ad93672c097b9565ae371cfb4",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "excess": "12269230769230770",
+            "fees": "9735897435897436",
+            "interest": "47920512820512820",
+            "ok": true,
+            "principal": "2000000000000000000",
+            "status": "CLOSED"
+          },
+          "at": 1794914051
+        },
+        {
+          "label": "Withdraw credits (lender)",
+          "fn": "withdraw",
+          "tx": "0xcd050e97beea7c211d0698d94b0b3cb93f0c0638a48aebdf8ba8eeb45373d310",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "10113737179487179486",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914063
+        },
+        {
+          "label": "Withdraw credits (borrower)",
+          "fn": "withdraw",
+          "tx": "0xd5c8217d0c228b5972c912c687a67f5a09067bba8e0e7c33cce006727f76dff1",
+          "status": "ACCEPTED",
+          "execution": "SUCCESS",
+          "created": null,
+          "from": null,
+          "result": {
+            "amount": "2262269230769230770",
+            "left": "0",
+            "ok": true
+          },
+          "at": 1794914074
+        }
+      ],
+      "id": "5",
+      "lender": "0xB4A6c109903a1cA5b6850a1F05379D0629F92320",
+      "borrower": "0x56B8B618d246Dcc3553BDC1CdA9600d123dA4Ad3",
+      "final": {
+        "status": "CLOSED",
+        "closed_reason": "repaid in full",
+        "money": {
+          "default_interest_accrued": "310256410256410",
+          "drawn_total": "2000000000000000000",
+          "dsra_applied": "0",
+          "dsra_held": "0",
+          "fees_accrued": "29840384615384615",
+          "fees_owed": "0",
+          "interest_accrued": "83896794871794871",
+          "interest_owed": "0",
+          "paid_fees": "29840384615384615",
+          "paid_interest": "83896794871794871",
+          "paid_principal": "2000000000000000000",
+          "payoff": "0",
+          "principal": "0",
+          "undrawn_held": "0"
+        },
+        "events": [
+          {
+            "at": 1794913500,
+            "code": "E2",
+            "period": 1,
+            "remedied_at": 0,
+            "waived_at": 1794913621
+          }
+        ],
+        "periods": [
+          "COMPLIANT",
+          "WAIVED",
+          "COMPLIANT"
+        ],
+        "written_off": null
+      }
+    }
+  }
+}

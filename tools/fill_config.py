@@ -39,7 +39,8 @@ def label_for(s, read_periods):
         raise SystemExit(f"{label} {s['tx']}: no outcome recorded; check by hand")
     if kind == "READ":
         read_periods.add(n)
-    return f"{label}: {kind}" + (f" {reason}" if reason else "")
+    late = " (stored after a leader timeout and rotation)" if s.get("recorded_status") else ""
+    return f"{label}: {kind}" + (f" {reason}" if reason else "") + late
 
 
 def main():
@@ -69,7 +70,8 @@ def main():
     block = re.sub(r"examples: \[.*?\],", ex, block, flags=re.S)
     block = re.sub(r"    txs: \{.*?\},", "    txs: " + json.dumps(txs, indent=2).replace("\n", "\n    ") + ",", block, flags=re.S)
     if "withdrawals:" in block:
-        block = re.sub(r"    withdrawals: \[.*?\],", "    withdrawals: " + json.dumps(withdrawals) + ",", block, flags=re.S)
+        # The list is written on one line; match that whole line (a lazy match stops at the first inner "],").
+        block = re.sub(r"    withdrawals: \[.*\],\n", "    withdrawals: " + json.dumps(withdrawals) + ",\n", block)
     else:
         block = block.replace("    txs: ", "    withdrawals: " + json.dumps(withdrawals) + ",\n    txs: ", 1)
     CFG.write_text(src[:start] + block + src[end:])
