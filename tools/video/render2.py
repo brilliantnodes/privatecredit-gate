@@ -70,7 +70,10 @@ def main():
             return
         outdir = HERE / "build3"
         outdir.mkdir(exist_ok=True)
-        files = [encode_scene(page, name, dur, i, len(SCENES), outdir) for i, (name, dur) in enumerate(SCENES)]
+        only = sys.argv[sys.argv.index("--only") + 1].split(",") if "--only" in sys.argv else None
+        # --only a,b: render just those scenes and reuse the other scenes' files from the last full render
+        files = [encode_scene(page, name, dur, i, len(SCENES), outdir) if not only or name in only else outdir / f"{i:02d}_{name}.mp4"
+                 for i, (name, dur) in enumerate(SCENES)]
         b.close()
     lst = outdir / "list.txt"
     lst.write_text("".join(f"file '{f.name}'\n" for f in files))

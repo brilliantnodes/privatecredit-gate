@@ -36,7 +36,7 @@ LINES = {
     "outcomes": "Margins, defaults, acceleration and waivers all follow written rules, on fixed dates.",
     "networks": "Five fictional borrowers ran end to end, on Gen Layer Studio and the Bradbury testnet. One hundred and twenty nine live transactions, with identical readings.",
     "site": "Every reading and transaction is on the site, and anyone can run their own facility on Studio.",
-    "end": "Private Credit Gate. Covenant gated credit, on Gen Layer.",
+    "end": "Private Credit Gate. Covenant gated credit, on Gen Layer, by Brilliant Nodes.",
 }
 
 
