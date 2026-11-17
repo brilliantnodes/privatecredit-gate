@@ -45,7 +45,13 @@ def encode_scene(page, name, dur, idx, total, outdir):
 
 
 def main():
+    global SCENES
     data = json.loads(Path(sys.argv[1]).read_text())
+    if "--durations" in sys.argv:  # scene lengths from voice.py, so each spoken line fits its scene
+        durs = json.loads(Path(sys.argv[sys.argv.index("--durations") + 1]).read_text())
+        SCENES = [(n, float(durs.get(n, d))) for n, d in SCENES]
+    audio = sys.argv[sys.argv.index("--audio") + 1] if "--audio" in sys.argv else None
+    out = sys.argv[sys.argv.index("--out") + 1] if "--out" in sys.argv else OUT
     w, h = SIZE
     with sync_playwright() as p:
         b = p.chromium.launch()
@@ -68,11 +74,16 @@ def main():
         b.close()
     lst = outdir / "list.txt"
     lst.write_text("".join(f"file '{f.name}'\n" for f in files))
-    tmp = HERE / (OUT[:-4] + ".part.mp4")
-    subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy",
-                    "-movflags", "+faststart", str(tmp)], check=True)
-    os.replace(tmp, HERE / OUT)
-    print(OUT)
+    tmp = HERE / (out[:-4] + ".part.mp4")
+    if audio:  # video stream copied as is, narration added as AAC
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-i", audio,
+                        "-map", "0:v", "-map", "1:a", "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-shortest",
+                        "-movflags", "+faststart", str(tmp)], check=True)
+    else:
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-f", "concat", "-safe", "0", "-i", str(lst), "-c", "copy",
+                        "-movflags", "+faststart", str(tmp)], check=True)
+    os.replace(tmp, HERE / out)
+    print(out)
 
 
 if __name__ == "__main__":

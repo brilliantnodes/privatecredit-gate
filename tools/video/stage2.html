@@ -97,7 +97,7 @@ const lerp = (a, b, k) => a + (b - a) * k;
 const px = (n) => (n * U) + "px";
 const op = (t, a, b) => `opacity:${seg(t, a, b)}`;
 const rise = (t, a, b, d = 26) => `opacity:${seg(t, a, b)};transform:translateY(${px((1 - seg(t, a, b)) * d)})`;
-const topbar = () => `<div class="top"><b>PrivateCreditGate</b><span>Intelligent Contract on GenLayer, with fictional companies</span></div>`;
+const topbar = () => `<div class="top"><b>PrivateCreditGate</b><span>Intelligent Contract on GenLayer</span></div>`;
 const cap = (text, t, dur, color = C.teal) => `<div class="cap" style="border-left-color:${color};opacity:${seg(t, .2, .6) * (1 - seg(t, dur - .35, dur))}">${text}</div>`;
 const waves = (t) => `<svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080"><use href="#waves" x="${-60 + t * 14}" y="-10" width="2200" height="1200"/></svg>`;
 function rosette(size, t, drawStart, drawLen, extra = "") {
@@ -150,7 +150,8 @@ const SCENES = {
       <text x="${sx(mark)}" y="724" fill="${C.amber}" font-size="38" font-family="Fraunces" font-weight="600" text-anchor="middle">$3T</text></g>
       <text x="140" y="852" fill="${C.muted}" font-size="21" font-family="InterV">Published estimates of the market for 2025–26 vary with the definition used.</text></svg></div>`;
     const text = `<div class="abs" style="left:${px(140)};top:${px(250)};width:${px(860)}"><div class="lede" style="${rise(t, .15, .6)}">PrivateCreditGate, on GenLayer</div>
-      <div class="h" style="font-size:${px(76)};margin-top:${px(22)};${rise(t, .35, 1.0, 34)}">Navigate an estimated $3&nbsp;trillion private credit market with confidence.</div></div>`;
+      <div class="h" style="font-size:${px(76)};margin-top:${px(22)};${rise(t, .35, 1.0, 34)}">Navigate an estimated $3&nbsp;trillion private credit market with confidence.</div>
+      <div style="font-size:${px(30)};color:${C.amber};font-weight:600;margin-top:${px(26)};${rise(t, .8, 1.3)}">privatecredit.brilliantnodes.com</div></div>`;
     return waves(t) + glow + ros + text + bar;
   },
   problem(t, dur) {
