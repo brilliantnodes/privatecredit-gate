@@ -9,3 +9,4 @@ tools/video/*.mp4
 tools/video/build/
 tools/video/pv_*.jpg
 tools/video/shot_*.jpg
+tools/video/build3/

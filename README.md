@@ -4,7 +4,7 @@
 
 **Try it:** https://privatecredit.brilliantnodes.com (GenLayer Studio, every step yourself with free temporary accounts) · https://privatecredit.brilliantnodes.com/?net=bradbury (Testnet Bradbury Phase 2, the live runs, read-only)
 
-**Video (48 s):** https://privatecredit.brilliantnodes.com/video/privatecredit-demo.mp4, made from the Bradbury run by `tools/video/` (`shot.py`, then `render.py data.json`).
+**Video (52 s):** https://privatecredit.brilliantnodes.com/video/privatecredit-demo.mp4, made from the Bradbury run by `tools/video/` (`shot.py`, then `render2.py data.json`).
 
 > Test GEN only, on GenLayer Studio and Testnet Bradbury Phase 2. Every company, figure and report page is fictional (Ashcarrow Logistics Ltd, Quillstrand Materials plc, Brenthollow Foods SA, Oskendale Retail Group, Tarrowmere Aerospace Components, and for visitors' own facilities Kelvardine Shipping Ltd and Pellingrove Foods plc). Not an offer of credit. MIT licence.
 

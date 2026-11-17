@@ -1,0 +1,339 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Fraunces; src: url(node_modules/@fontsource-variable/fraunces/files/fraunces-latin-full-normal.woff2) format("woff2-variations"); font-weight: 100 900; }
+@font-face { font-family: InterV; src: url(node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2); font-weight: 400; }
+@font-face { font-family: InterV; src: url(node_modules/@fontsource/inter/files/inter-latin-600-normal.woff2); font-weight: 600; }
+@font-face { font-family: InterV; src: url(node_modules/@fontsource/inter/files/inter-latin-700-normal.woff2); font-weight: 700; }
+:root { --ink: #0F1A3A; --ink2: #1C1652; --teal: #22B8A7; --mauve: #8A6CE0; --amber: #F2B13E; --rose: #EA6A86; --paper: #F4EFE2; --text: #EEF1FA; --muted: #A9B3D1; }
+html, body { margin: 0; background: var(--ink); }
+#s { position: relative; overflow: hidden; color: var(--text); font-family: InterV, sans-serif;
+  background: radial-gradient(ellipse at 82% 18%, rgba(138,108,224,.32), transparent 55%), radial-gradient(ellipse at 8% 92%, rgba(34,184,167,.20), transparent 50%), linear-gradient(160deg, var(--ink), var(--ink2)); }
+#veil { position: absolute; inset: 0; background: var(--ink); pointer-events: none; }
+.serif { font-family: Fraunces, serif; font-variation-settings: "opsz" 144, "SOFT" 30; }
+.abs { position: absolute; }
+.top { position: absolute; left: calc(var(--u) * 120); right: calc(var(--u) * 120); top: calc(var(--u) * 46); display: flex; justify-content: space-between; align-items: baseline; }
+.top b { font-family: Fraunces, serif; font-weight: 600; font-size: calc(var(--u) * 30); color: var(--text); }
+.top span { font-size: calc(var(--u) * 21); color: var(--muted); }
+.cap { position: absolute; left: calc(var(--u) * 120); bottom: calc(var(--u) * 62); max-width: calc(var(--u) * 1600); background: rgba(9,14,36,.82); border-left: calc(var(--u) * 7) solid var(--teal); color: var(--text); font-weight: 600; font-size: calc(var(--u) * 36); line-height: 1.3; padding: calc(var(--u) * 16) calc(var(--u) * 30); border-radius: 0 calc(var(--u) * 10) calc(var(--u) * 10) 0; }
+.h { font-family: Fraunces, serif; font-weight: 560; font-variation-settings: "opsz" 144, "SOFT" 30; line-height: 1.07; letter-spacing: -.01em; }
+.lede { font-size: calc(var(--u) * 28); color: var(--teal); font-weight: 600; }
+.muted { color: var(--muted); }
+.paper { background: var(--paper); color: #1d2440; border-radius: calc(var(--u) * 10); box-shadow: 0 calc(var(--u) * 30) calc(var(--u) * 60) rgba(0,0,0,.45); }
+.chip { background: var(--paper); color: #1d2440; border-left: calc(var(--u) * 8) solid var(--teal); border-radius: calc(var(--u) * 8); padding: calc(var(--u) * 14) calc(var(--u) * 22); display: flex; justify-content: space-between; font-size: calc(var(--u) * 26); font-weight: 600; margin-top: calc(var(--u) * 14); box-shadow: 0 calc(var(--u) * 10) calc(var(--u) * 24) rgba(0,0,0,.35); }
+.chip b { font-family: Fraunces, serif; font-weight: 600; font-variant-numeric: tabular-nums lining-nums; }
+.browser { background: #fff; border-radius: calc(var(--u) * 14); overflow: hidden; box-shadow: 0 calc(var(--u) * 40) calc(var(--u) * 90) rgba(0,0,0,.55), 0 0 0 calc(var(--u) * 1) rgba(255,255,255,.15); }
+.browser .bb { background: #e8ebf3; height: calc(var(--u) * 44); display: flex; align-items: center; gap: calc(var(--u) * 9); padding: 0 calc(var(--u) * 16); color: #46506b; font-size: calc(var(--u) * 18); }
+.browser .bb i { width: calc(var(--u) * 13); height: calc(var(--u) * 13); border-radius: 50%; background: #e5484d; display: inline-block; }
+.browser .bb i:nth-child(2) { background: #f5b301; } .browser .bb i:nth-child(3) { background: #2fb36b; }
+.browser .bb span { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: calc(var(--u) * 60); }
+.browser .shot { position: relative; overflow: hidden; background: #fbfaf6; }
+.browser img { position: absolute; left: 0; width: 100%; }
+.panel { position: absolute; background: rgba(255,255,255,.06); border: calc(var(--u) * 1) solid rgba(255,255,255,.14); border-top: calc(var(--u) * 7) solid var(--amber); border-radius: calc(var(--u) * 16); padding: calc(var(--u) * 28) calc(var(--u) * 30); box-sizing: border-box; backdrop-filter: blur(2px); }
+.panel .pt { font-family: Fraunces, serif; font-weight: 600; font-size: calc(var(--u) * 36); line-height: 1.1; }
+.panel .ps { font-size: calc(var(--u) * 20); color: var(--muted); margin-top: calc(var(--u) * 6); }
+.badge { display: inline-block; font-weight: 700; font-size: calc(var(--u) * 26); padding: calc(var(--u) * 9) calc(var(--u) * 20); border-radius: calc(var(--u) * 40); }
+.num { font-family: Fraunces, serif; font-variant-numeric: tabular-nums lining-nums; font-weight: 600; }
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs id="defs"></defs></svg>
+<div id="s"></div>
+<script>
+const S = document.getElementById("s");
+let D = null, W = 1920, H = 1080, U = 1;
+const C = { ink: "#0F1A3A", teal: "#22B8A7", mauve: "#8A6CE0", amber: "#F2B13E", rose: "#EA6A86", paper: "#F4EFE2", text: "#EEF1FA", muted: "#A9B3D1" };
+
+// Guilloché bands: r(t) = R0 + a·sin(k·t + φ), several phase-shifted copies per band.
+function ring(R0, a, k, phase, steps = 1440) {
+  let s = "";
+  for (let i = 0; i <= steps; i++) {
+    const t = (i / steps) * 2 * Math.PI;
+    const r = R0 + a * Math.sin(k * t + phase) + a * 0.35 * Math.sin((k / 2) * t - phase * 2);
+    s += (i ? "L" : "M") + (r * Math.cos(t)).toFixed(1) + " " + (r * Math.sin(t)).toFixed(1);
+  }
+  return s + "Z";
+}
+const BANDS = [
+  { R0: 290, a: 26, k: 48, n: 7, color: C.teal },
+  { R0: 205, a: 32, k: 32, n: 7, color: C.mauve },
+  { R0: 128, a: 28, k: 20, n: 6, color: C.amber },
+  { R0: 58, a: 22, k: 12, n: 5, color: C.rose },
+];
+function buildDefs() {
+  let html = "";
+  BANDS.forEach((b, bi) => {
+    let paths = "";
+    for (let j = 0; j < b.n; j++) paths += `<path d="${ring(b.R0, b.a, b.k, (j / b.n) * (Math.PI * 2 / b.k) * 2.2)}" pathLength="1"/>`;
+    html += `<symbol id="band${bi}" viewBox="-340 -340 680 680" overflow="visible"><g fill="none" stroke="${b.color}" stroke-width="1.3">${paths}</g></symbol>`;
+  });
+  // small seal: two bands
+  let seal = "";
+  for (let j = 0; j < 6; j++) seal += `<path d="${ring(84, 12, 24, j * 0.09, 720)}" pathLength="1"/>`;
+  for (let j = 0; j < 5; j++) seal += `<path d="${ring(52, 12, 14, j * 0.14, 720)}" pathLength="1"/>`;
+  html += `<symbol id="seal" viewBox="-110 -110 220 220" overflow="visible"><g fill="none" stroke-width="1.6">${seal}</g></symbol>`;
+  // faint background waves
+  let waves = "";
+  for (let j = 0; j < 9; j++) {
+    let s = "";
+    for (let i = 0; i <= 240; i++) { const x = i * 10 - 100; const y = 820 + j * 26 + 34 * Math.sin(i / 18 + j * 0.5) + 14 * Math.sin(i / 7 - j); s += (i ? "L" : "M") + x + " " + y.toFixed(1); }
+    waves += `<path d="${s}"/>`;
+  }
+  html += `<symbol id="waves" viewBox="0 0 2200 1200" overflow="visible"><g fill="none" stroke="rgba(169,179,209,.10)" stroke-width="1.4">${waves}</g></symbol>`;
+  document.getElementById("defs").innerHTML = html;
+}
+async function setup(w, h, data) {
+  W = w; H = h; D = data; U = h / 1080;
+  S.style.width = w + "px"; S.style.height = h + "px";
+  S.style.setProperty("--u", U + "px");
+  buildDefs();
+  await Promise.all([document.fonts.load("600 40px Fraunces"), document.fonts.load("600 40px InterV"), document.fonts.load("400 40px InterV"), document.fonts.load("700 40px InterV")]);
+  for (const src of [D.report, D.shot]) await new Promise((r) => { const im = new Image(); im.onload = im.onerror = r; im.src = src; });
+}
+const clamp = (x) => Math.max(0, Math.min(1, x));
+const ease = (x) => { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
+const easeOutBack = (x) => { x = clamp(x); const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const seg = (t, a, b) => ease((t - a) / (b - a));
+const lerp = (a, b, k) => a + (b - a) * k;
+const px = (n) => (n * U) + "px";
+const op = (t, a, b) => `opacity:${seg(t, a, b)}`;
+const rise = (t, a, b, d = 26) => `opacity:${seg(t, a, b)};transform:translateY(${px((1 - seg(t, a, b)) * d)})`;
+const topbar = () => `<div class="top"><b>PrivateCreditGate</b><span>Intelligent Contract on GenLayer, with fictional companies</span></div>`;
+const cap = (text, t, dur, color = C.teal) => `<div class="cap" style="border-left-color:${color};opacity:${seg(t, .2, .6) * (1 - seg(t, dur - .35, dur))}">${text}</div>`;
+const waves = (t) => `<svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080"><use href="#waves" x="${-60 + t * 14}" y="-10" width="2200" height="1200"/></svg>`;
+function rosette(size, t, drawStart, drawLen, extra = "") {
+  let uses = "";
+  BANDS.forEach((b, i) => {
+    const k = seg(t, drawStart + i * 0.22, drawStart + i * 0.22 + drawLen);
+    uses += `<use href="#band${i}" x="-340" y="-340" width="680" height="680" style="stroke-dasharray:1 1;stroke-dashoffset:${(1 - k).toFixed(4)}"/>`;
+  });
+  return `<svg width="${px(size)}" height="${px(size)}" viewBox="-340 -340 680 680" style="overflow:visible;${extra}">${uses}</svg>`;
+}
+function seal(size, color, k, extra = "") {
+  return `<svg width="${px(size)}" height="${px(size)}" viewBox="-110 -110 220 220" style="overflow:visible;${extra}"><g stroke="${color}"><use href="#seal" x="-110" y="-110" width="220" height="220" style="stroke-dasharray:1 1;stroke-dashoffset:${(1 - k).toFixed(4)}"/></g></svg>`;
+}
+const gaugeArc = (cx, cy, r, v0, v1, vmax, color, w) => {
+  const a0 = Math.PI * (1 - v0 / vmax), a1 = Math.PI * (1 - v1 / vmax);
+  const x0 = cx + r * Math.cos(a0), y0 = cy - r * Math.sin(a0), x1 = cx + r * Math.cos(a1), y1 = cy - r * Math.sin(a1);
+  return `<path d="M${x0} ${y0} A${r} ${r} 0 0 1 ${x1} ${y1}" stroke="${color}" stroke-width="${w}" fill="none"/>`;
+};
+function gauge(cx, cy, r, vmax, zones, value, limit, limitLabel, tickStep, fmt) {
+  let g = "";
+  zones.forEach(([a, b, c]) => { g += gaugeArc(cx, cy, r, a, b, vmax, c, r * 0.13); });
+  for (let v = 0; v <= vmax + 1e-9; v += tickStep) {
+    const a = Math.PI * (1 - v / vmax);
+    g += `<text x="${cx + (r * 0.78) * Math.cos(a)}" y="${cy - (r * 0.78) * Math.sin(a) + r * 0.03}" fill="${C.muted}" font-size="${r * 0.075}" font-family="InterV" text-anchor="middle">${fmt(v)}</text>`;
+  }
+  const la = Math.PI * (1 - limit / vmax);
+  g += `<line x1="${cx + r * 0.9 * Math.cos(la)}" y1="${cy - r * 0.9 * Math.sin(la)}" x2="${cx + r * 1.12 * Math.cos(la)}" y2="${cy - r * 1.12 * Math.sin(la)}" stroke="#fff" stroke-width="${r * 0.016}"/>`;
+  g += `<text x="${cx + r * 1.2 * Math.cos(la)}" y="${cy - r * 1.2 * Math.sin(la)}" fill="#fff" font-size="${r * 0.08}" font-family="InterV" font-weight="600" text-anchor="middle">${limitLabel}</text>`;
+  const na = Math.PI * (1 - Math.min(value, vmax) / vmax);
+  g += `<line x1="${cx}" y1="${cy}" x2="${cx + r * 0.86 * Math.cos(na)}" y2="${cy - r * 0.86 * Math.sin(na)}" stroke="#fff" stroke-width="${r * 0.028}" stroke-linecap="round"/>`;
+  g += `<circle cx="${cx}" cy="${cy}" r="${r * 0.06}" fill="#fff"/>`;
+  return g;
+}
+const browser = (url, w, h, inner, transform) => `<div class="browser" style="width:${px(w)};transform:${transform};transform-origin:50% 50%"><div class="bb"><i></i><i></i><i></i><span>${url}</span></div><div class="shot" style="height:${px(h)}">${inner}</div></div>`;
+
+const SCENES = {
+  title(t, dur) {
+    const tilt = lerp(50, 36, seg(t, 0, dur));
+    const glow = `<div class="abs" style="left:${px(1010)};top:${px(170)};width:${px(780)};height:${px(780)};border-radius:50%;background:radial-gradient(circle, rgba(242,177,62,.28), rgba(138,108,224,.14) 45%, transparent 70%)"></div>`;
+    const ros = `<div class="abs" style="left:${px(1020)};top:${px(180)};width:${px(760)};height:${px(760)};perspective:${px(1500)}"><div style="transform:rotateX(${tilt}deg) rotateZ(${t * 14}deg);transform-style:preserve-3d">${rosette(760, t, 0.05, 1.5)}</div></div>`;
+    const x0 = 1.7, x1 = 4.0, mark = 3.0, sx = (v) => 140 + (v / 5) * 760;
+    const k = seg(t, 1.4, 2.4);
+    const bar = `<div class="abs" style="left:0;top:0;${op(t, 1.2, 1.6)}"><svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080">
+      <defs><linearGradient id="rg" x1="0" x2="1"><stop offset="0" stop-color="${C.teal}"/><stop offset="1" stop-color="${C.amber}"/></linearGradient></defs>
+      <rect x="140" y="760" width="760" height="14" rx="7" fill="rgba(255,255,255,.12)"/>
+      <rect x="${sx(x0)}" y="760" width="${(sx(x1) - sx(x0)) * k}" height="14" rx="7" fill="url(#rg)"/>
+      <text x="${sx(x0)}" y="808" fill="${C.muted}" font-size="22" font-family="InterV" text-anchor="middle">$1.7T</text>
+      <text x="${sx(x1)}" y="808" fill="${C.muted}" font-size="22" font-family="InterV" text-anchor="middle" opacity="${k}">$4T</text>
+      <g opacity="${seg(t, 2.2, 2.6)}"><line x1="${sx(mark)}" y1="738" x2="${sx(mark)}" y2="790" stroke="#fff" stroke-width="3"/><circle cx="${sx(mark)}" cy="767" r="11" fill="#fff"/>
+      <text x="${sx(mark)}" y="724" fill="${C.amber}" font-size="38" font-family="Fraunces" font-weight="600" text-anchor="middle">$3T</text></g>
+      <text x="140" y="852" fill="${C.muted}" font-size="21" font-family="InterV">Published estimates of the market for 2025–26 vary with the definition used.</text></svg></div>`;
+    const text = `<div class="abs" style="left:${px(140)};top:${px(250)};width:${px(860)}"><div class="lede" style="${rise(t, .15, .6)}">PrivateCreditGate, on GenLayer</div>
+      <div class="h" style="font-size:${px(76)};margin-top:${px(22)};${rise(t, .35, 1.0, 34)}">Navigate an estimated $3&nbsp;trillion private credit market with confidence.</div></div>`;
+    return waves(t) + glow + ros + text + bar;
+  },
+  problem(t, dur) {
+    const head = `<div class="abs h" style="left:${px(120)};top:${px(130)};width:${px(1100)};font-size:${px(60)};${rise(t, .1, .5)}">Every quarter, someone retypes the borrower's figures by hand.</div>`;
+    const rows = [["LTM EBITDA", "14,200"], ["LTM net finance costs", "2,100"], ["Total borrowings", "59,500"], ["Cash", "6,300"]];
+    let cards = "";
+    for (let i = 3; i >= 0; i--) {
+      const f = Math.sin(t * 1.6 + i) * 6;
+      cards += `<div class="paper abs" style="width:${px(380)};height:${px(470)};left:${px(i * 34)};top:${px(-i * 22 + f)};transform:translateZ(${px(-i * 60)});padding:${px(26)};box-sizing:border-box;overflow:hidden">
+        <svg class="abs" style="right:${px(-60)};bottom:${px(-60)};opacity:.35" width="${px(260)}" height="${px(260)}" viewBox="-110 -110 220 220"><g stroke="${[C.teal, C.mauve, C.amber, C.rose][i]}"><use href="#seal" x="-110" y="-110" width="220" height="220"/></g></svg>
+        <div class="serif" style="font-size:${px(28)};font-weight:600">Compliance certificate</div><div style="font-size:${px(16)};color:#6b7290;margin-top:${px(4)}">Period ${4 - i}, EUR thousands</div>
+        ${rows.map((r) => `<div style="display:flex;justify-content:space-between;border-top:1px solid #d9d2bd;padding:${px(12)} 0;font-size:${px(19)};margin-top:${px(6)}"><span>${r[0]}</span><b class="serif">${r[1]}</b></div>`).join("")}
+        <div style="height:${px(10)};background:#e3dcc6;border-radius:4px;margin-top:${px(22)};width:80%"></div><div style="height:${px(10)};background:#e3dcc6;border-radius:4px;margin-top:${px(10)};width:60%"></div></div>`;
+    }
+    const stack = `<div class="abs" style="left:${px(210)};top:${px(400)};width:${px(500)};height:${px(500)};perspective:${px(1600)}"><div style="position:relative;transform:rotateX(14deg) rotateY(${-26 + Math.sin(t) * 3}deg);transform-style:preserve-3d">${cards}</div></div>`;
+    const typed = (s, a, b) => s.slice(0, Math.round(s.length * clamp((t - a) / (b - a))));
+    const vals = [["14,200", 1.3], ["2,100", 1.8], ["59,050", 2.3], ["6,300", 2.9]];
+    const typo = t > 2.6;
+    let grid = `<div class="abs" style="left:${px(1030)};top:${px(430)};width:${px(720)};background:#f7f8fc;border-radius:${px(12)};overflow:hidden;box-shadow:0 ${px(30)} ${px(70)} rgba(0,0,0,.5);${rise(t, .5, 1.0)}">
+      <div style="background:#2a3354;color:#dfe5f7;font-size:${px(18)};padding:${px(10)} ${px(18)}">covenants-q3.xlsx</div>
+      <div style="display:grid;grid-template-columns:${px(50)} 1fr ${px(220)};font-size:${px(22)};color:#283055">`;
+    grid += `<div style="background:#e8ebf5;padding:${px(10)}"></div><div style="background:#e8ebf5;padding:${px(10)};font-weight:600">A</div><div style="background:#e8ebf5;padding:${px(10)};font-weight:600">B</div>`;
+    rows.forEach((r, i) => {
+      const bad = i === 2 && typo;
+      grid += `<div style="background:#e8ebf5;padding:${px(14)} ${px(10)};text-align:center;color:#6b7290">${i + 1}</div><div style="padding:${px(14)};border-top:1px solid #dde1ee">${r[0]}</div><div style="padding:${px(14)};border-top:1px solid #dde1ee;text-align:right;font-variant-numeric:tabular-nums;${bad ? `background:rgba(234,106,134,.22);color:#b3264a;font-weight:700` : ""}">${typed(vals[i][0], vals[i][1], vals[i][1] + .45)}${t > vals[i][1] && t < vals[i][1] + .55 ? "|" : ""}</div>`;
+    });
+    grid += `</div></div>`;
+    const warn = `<div class="abs" style="left:${px(1240)};top:${px(770)};${rise(t, 2.7, 3.0, 12)}"><span class="badge" style="background:${C.rose};color:#fff">Typo: 59,500 keyed as 59,050</span></div>`;
+    const arrow = `<svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080"><path d="M800 640 C 880 600, 930 600, 1010 620" stroke="${C.amber}" stroke-width="5" fill="none" stroke-dasharray="14 12" stroke-dashoffset="${-t * 40}" opacity="${seg(t, .8, 1.1)}"/><path d="M996 606 L1014 621 L994 634" stroke="${C.amber}" stroke-width="5" fill="none" opacity="${seg(t, .8, 1.1)}"/></svg>`;
+    return waves(t) + head + stack + arrow + grid + warn + cap("Errors, delays and arguments over what the report says start at this step.", t, dur, C.rose);
+  },
+  report(t, dur) {
+    const bw = 980, sc = bw / 1650, ch = 900 * sc;
+    const beam = lerp(-40, ch + 20, seg(t, 1.0, 3.3));
+    const rowsY = [457, 523, 588, 654];
+    let hl = "";
+    rowsY.forEach((y, i) => { const on = beam > y * sc; hl += `<div class="abs" style="left:${px(250 * sc)};top:${px((y - 30) * sc)};width:${px(1150 * sc)};height:${px(60 * sc)};border:${px(3)} solid ${C.teal};background:rgba(34,184,167,.14);border-radius:${px(6)};opacity:${on ? 1 : 0}"></div>`; });
+    const inner = `<img src="${D.report}" style="top:0">${hl}<div class="abs" style="left:0;right:0;top:${px(beam)};height:${px(36)};background:linear-gradient(180deg, transparent, rgba(34,184,167,.55), transparent)"></div>`;
+    const br = `<div class="abs" style="left:${px(140)};top:${px(200)};perspective:${px(2000)};${op(t, 0, .4)}">${browser("privatecredit.brilliantnodes.com/reports/brenthollow/bradbury-2/period-1.html", bw, ch, inner, `rotateY(${lerp(22, 14, seg(t, 0, dur))}deg) rotateX(4deg)`)}</div>`;
+    const chips = [["LTM EBITDA", "14,200"], ["LTM net finance costs", "2,100"], ["Total borrowings", "59,500"], ["Cash", "6,300"]];
+    let right = `<div class="abs" style="left:${px(1260)};top:${px(230)};width:${px(540)}"><div class="h" style="font-size:${px(58)};${rise(t, .2, .7)}">The borrower publishes. Validators read.</div><div style="margin-top:${px(24)}">`;
+    chips.forEach((c, i) => { const on = beam > rowsY[i] * sc; right += `<div class="chip" style="opacity:${on ? 1 : 0};transform:translateX(${on ? 0 : px(30)})"><span>${c[0]}</span><b>${c[1]}</b></div>`; });
+    right += `</div><div class="muted" style="font-size:${px(20)};margin-top:${px(12)};${op(t, 3.3, 3.7)}">EUR thousands, period 1, as printed on the page</div></div>`;
+    return waves(t) + br + right + cap("Each borrower publishes its figures on a web page (demo pages).", t, dur, C.teal);
+  },
+  validators(t, dur) {
+    const cx = 960, cy = 560, rx = 620, ry = 210;
+    const card = `<div class="paper abs" style="left:${px(cx - 210)};top:${px(cy - 190)};width:${px(420)};padding:${px(22)} ${px(26)};box-sizing:border-box;${op(t, 0, .4)}">
+      <div class="serif" style="font-size:${px(28)};font-weight:600">Brenthollow Foods SA</div><div style="font-size:${px(16)};color:#6b7290;margin:${px(4)} 0 ${px(8)}">Period 1, EUR thousands (fictional)</div>
+      ${[["LTM EBITDA", "14,200"], ["LTM net finance costs", "2,100"], ["Total borrowings", "59,500"], ["Cash", "6,300"]].map((r) => `<div style="display:flex;justify-content:space-between;border-top:1px solid #d9d2bd;padding:${px(10)} 0;font-size:${px(21)}"><span>${r[0]}</span><b class="serif">${r[1]}</b></div>`).join("")}</div>`;
+    const nodes = [{ a: 200, c: C.teal }, { a: 330, c: C.mauve }, { a: 30, c: C.amber }, { a: 150, c: C.rose, late: true }];
+    let lines = "", seals = "";
+    nodes.forEach((n, i) => {
+      const ang = (n.a + t * 7) * Math.PI / 180;
+      const x = cx + rx * Math.cos(ang), y = cy + ry * Math.sin(ang);
+      const depth = (Math.sin(ang) + 1) / 2; // 0 back, 1 front
+      const sz = lerp(120, 190, depth);
+      const st = 1.4 + i * 0.7;
+      const done = t > st;
+      const k = seg(t, 0.2 + i * 0.15, 1.4 + i * 0.15);
+      const col = n.late ? "#6c7593" : n.c;
+      lines += `<line x1="${x}" y1="${y}" x2="${cx}" y2="${cy}" stroke="${done ? col : "rgba(169,179,209,.35)"}" stroke-width="${done ? 4 : 2}" stroke-dasharray="10 10" stroke-dashoffset="${-t * 50}" opacity="${seg(t, .3, .8)}"/>`;
+      const stamp = done ? (n.late ? `<text x="0" y="12" fill="#c9cfe4" font-size="54" font-family="InterV" font-weight="700" text-anchor="middle">–</text>` : `<circle r="${lerp(0, 46, seg(t, st, st + .25))}" fill="${n.c}"/><path d="M-20 2 L-6 16 L22 -14" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="${seg(t, st + .15, st + .35)}"/>`) : "";
+      seals += `<div class="abs" style="left:${px(x - sz / 2)};top:${px(y - sz / 2)};width:${px(sz)};height:${px(sz)};z-index:${depth > .5 ? 5 : 1}">${seal(sz, col, k, "position:absolute;left:0;top:0")}<svg class="abs" style="left:0;top:0" width="${px(sz)}" height="${px(sz)}" viewBox="-110 -110 220 220">${stamp}</svg></div>`;
+      if (n.late && done) seals += `<div class="abs muted" style="left:${px(x - 100)};top:${px(y + sz / 2 + 4)};width:${px(200)};text-align:center;font-size:${px(19)}">no answer in time</div>`;
+    });
+    const svg = `<svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080"><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="rgba(169,179,209,.18)" stroke-width="2"/>${lines}</svg>`;
+    const head = `<div class="abs" style="left:${px(120)};top:${px(120)};width:${px(1300)}"><div class="h" style="font-size:${px(54)};${rise(t, 3.6, 4.1)}">3 of 4 validators copied the same four figures.</div><div class="muted" style="font-size:${px(22)};margin-top:${px(10)};${op(t, 3.9, 4.3)}">Deciding round, after a leader rotation. One validator did not answer in time.</div></div>`;
+    return waves(t) + svg + card + seals + head + cap("A reading is stored only when a majority copies exactly the same figures.", t, dur, C.mauve);
+  },
+  gauge(t, dur) {
+    const v = 3.75 * easeOutBack(seg(t, 0.6, 2.1));
+    const g = gauge(1360, 700, 380, 5, [[0, 2.5, C.teal], [2.5, 3.5, C.amber], [3.5, 5, C.rose]], v, 3.5, "limit 3.50x", 1, (x) => x + "x");
+    const left = `<div class="abs" style="left:${px(120)};top:${px(200)};width:${px(700)}">
+      <div class="h" style="font-size:${px(60)};${rise(t, .1, .5)}">Code, not a model, tests the covenant.</div>
+      <div style="font-size:${px(30)};margin-top:${px(34)};${op(t, .6, 1.0)}">Net debt 53.2m ÷ EBITDA 14.2m</div>
+      <div class="num" style="font-size:${px(150)};color:${C.rose};line-height:1;margin-top:${px(14)};${rise(t, 2.0, 2.4, 20)}">3.75x</div>
+      <div style="margin-top:${px(18)};${op(t, 2.4, 2.8)}"><span class="badge" style="background:${C.rose};color:#fff">Breach: the limit is 3.50x</span></div></div>`;
+    return waves(t) + `<svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080">${g}</svg>` + left + cap("Plain Python converts, rounds and decides. No model judges the numbers.", t, dur, C.amber);
+  },
+  cure(t, dur) {
+    const X = [330, 870, 1410], y = (v) => 860 - (v - 2.0) / 2.2 * 600;
+    const p1 = lerp(3.75, 3.5, seg(t, 3.3, 3.9));
+    const k1 = seg(t, .4, 1.5), k2 = seg(t, 3.9, 4.9);
+    const pA = [X[0], y(2.80)], pB = [X[1], y(p1)], pC = [X[2], y(3.07)];
+    const segA = `M${pA[0]} ${pA[1]} L${lerp(pA[0], pB[0], k1)} ${lerp(pA[1], y(3.75), k1)}`;
+    const segB = k2 > 0 ? `M${pB[0]} ${pB[1]} L${lerp(pB[0], pC[0], k2)} ${lerp(pB[1], pC[1], k2)}` : "";
+    let axes = "";
+    [2.0, 2.5, 3.0, 3.5, 4.0].forEach((v) => { axes += `<line x1="230" x2="1560" y1="${y(v)}" y2="${y(v)}" stroke="rgba(169,179,209,.13)"/><text x="210" y="${y(v) + 8}" fill="${C.muted}" font-size="22" font-family="InterV" text-anchor="end">${v.toFixed(1)}x</text>`; });
+    ["Period 0", "Period 1", "Period 2"].forEach((s, i) => { axes += `<text x="${X[i]}" y="905" fill="${C.muted}" font-size="23" font-family="InterV" text-anchor="middle">${s}</text>`; });
+    const lim = `<line x1="230" x2="1560" y1="${y(3.5)}" y2="${y(3.5)}" stroke="${C.rose}" stroke-width="3" stroke-dasharray="14 10"/><text x="1560" y="${y(3.5) - 14}" fill="${C.rose}" font-size="24" font-family="InterV" font-weight="600" text-anchor="end">Covenant limit 3.50x</text>`;
+    const cured = t > 3.6;
+    const dot = (p, c, r = 13) => `<circle cx="${p[0]}" cy="${p[1]}" r="${r}" fill="${c}" stroke="#fff" stroke-width="4"/>`;
+    let dots = dot(pA, C.teal) + `<text x="${pA[0]}" y="${pA[1] - 26}" fill="#fff" font-size="28" font-family="Fraunces" font-weight="600" text-anchor="middle">2.80x</text>`;
+    if (cured) dots += `<circle cx="${pB[0]}" cy="${y(3.75)}" r="13" fill="none" stroke="${C.rose}" stroke-width="4" stroke-dasharray="6 6" opacity=".8"/><line x1="${pB[0]}" y1="${y(3.75) + 16}" x2="${pB[0]}" y2="${pB[1] - 18}" stroke="${C.amber}" stroke-width="4" stroke-dasharray="8 6"/><text x="${pB[0] - 24}" y="${(y(3.75) + pB[1]) / 2 + 8}" fill="${C.amber}" font-size="22" font-family="InterV" font-weight="600" text-anchor="end">cure</text>`;
+    if (k1 >= 1) dots += dot(pB, cured ? C.teal : C.rose, 15) + `<text x="${pB[0] + 30}" y="${pB[1] - 22}" fill="${cured ? C.teal : C.rose}" font-size="30" font-family="Fraunces" font-weight="600">${cured ? "3.50x, cured" : "3.75x, breach"}</text>`;
+    if (k2 >= 1) dots += dot(pC, C.teal) + `<text x="${pC[0]}" y="${pC[1] - 26}" fill="#fff" font-size="28" font-family="Fraunces" font-weight="600" text-anchor="middle">3.07x</text>`;
+    // coin
+    const kc = seg(t, 1.9, 3.3);
+    let coin = "";
+    if (t > 1.7 && t < 3.45) {
+      const cx = lerp(230, pB[0], kc), cy = lerp(1000, y(3.75), kc) - Math.sin(kc * Math.PI) * 180;
+      const sx = Math.abs(Math.cos(t * 7));
+      coin = `<g transform="translate(${cx} ${cy})"><ellipse rx="${46 * Math.max(sx, .12)}" ry="46" fill="${C.amber}" stroke="#fff3cf" stroke-width="4"/><text y="10" fill="#5b3c00" font-size="28" font-family="Fraunces" font-weight="700" text-anchor="middle" opacity="${sx > .5 ? 1 : 0}">GEN</text></g>`;
+    }
+    const note = `<div class="abs" style="left:${px(1010)};top:${px(150)};width:${px(780)};${rise(t, 1.9, 2.3)}"><div class="h" style="font-size:${px(44)}">Equity cure: EUR 3.5m of principal prepaid.</div><div class="muted" style="font-size:${px(22)};margin-top:${px(10)}">Brenthollow Foods (fictional). The amount is quoted on chain.</div></div>`;
+    const svg = `<svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="${C.teal}"/><stop offset=".5" stop-color="${C.amber}"/><stop offset="1" stop-color="${C.teal}"/></linearGradient></defs>${axes}${lim}<path d="${segA}" stroke="url(#lg)" stroke-width="8" fill="none" stroke-linecap="round"/><path d="${segB}" stroke="${C.teal}" stroke-width="8" fill="none" stroke-linecap="round"/>${dots}${coin}</svg>`;
+    return waves(t) + svg + note + cap("The exact cure is quoted on chain. Paid in time, it prepays principal.", t, dur, C.amber);
+  },
+  outcomes(t, dur) {
+    const pw = 520, ph = 560, top = 190, xs = [120, 700, 1280];
+    const tilt = (i) => `transform:perspective(${px(1600)}) rotateY(${(1 - i) * 7}deg);${rise(t, .1 + i * .2, .6 + i * .2)}`;
+    // Quillstrand bars
+    const bars = [[2.50, "2.45x"], [4.00, "3.01x"], [3.25, "2.90x"]];
+    let b = "";
+    bars.forEach(([m, lev], i) => {
+      const k = seg(t, .7 + i * .35, 1.4 + i * .35), h = (m / 4.5) * 250 * k, x = 40 + i * 140;
+      b += `<rect x="${x}" y="${300 - h}" width="90" height="${h}" rx="8" fill="${i === 1 ? C.amber : "rgba(242,177,62,.45)"}"/><text x="${x + 45}" y="${290 - h}" fill="#fff" font-size="26" font-family="Fraunces" font-weight="600" text-anchor="middle" opacity="${k}">${m.toFixed(2)}%</text><text x="${x + 45}" y="336" fill="${C.muted}" font-size="20" font-family="InterV" text-anchor="middle">Period ${i}</text><text x="${x + 45}" y="362" fill="${C.text}" font-size="20" font-family="InterV" text-anchor="middle">${lev}</text>`;
+    });
+    const p1 = `<div class="panel" style="left:${px(xs[0])};top:${px(top)};width:${px(pw)};height:${px(ph)};border-top-color:${C.amber};${tilt(0)}"><div class="pt">Margin follows leverage</div><div class="ps">Quillstrand Materials plc</div>
+      <svg width="${px(460)}" height="${px(380)}" viewBox="0 0 460 380" style="margin-top:${px(16)}">${b}</svg></div>`;
+    const v = 3.11 * easeOutBack(seg(t, 1.0, 2.4));
+    const g = gauge(230, 230, 190, 6, [[0, 4, C.rose], [4, 6, C.teal]], v, 4, "min 4.00x", 2, (x) => x + "x");
+    const p2 = `<div class="panel" style="left:${px(xs[1])};top:${px(top)};width:${px(pw)};height:${px(ph)};border-top-color:${C.rose};${tilt(1)}"><div class="pt">Cover breach, then default</div><div class="ps">Oskendale Retail Group</div>
+      <svg width="${px(460)}" height="${px(260)}" viewBox="0 0 460 260" style="margin-top:${px(6)}">${g}</svg>
+      <div class="num" style="font-size:${px(52)};color:${C.rose};margin-top:${px(-8)}">cover 3.11x</div><div style="font-size:${px(20)};line-height:1.35;margin-top:${px(6)};color:${C.text}">An equity cure cannot fix cover. Default, acceleration with the reserve applied, then a write-off.</div></div>`;
+    const steps = [["Report not yet published", "#7b84a3"], ["Published without units: no reading", C.amber], ["Window closes: top band, then default", C.rose], ["Lender waives the covenant", C.teal], ["Repaid at maturity", C.teal]];
+    let tl = "";
+    steps.forEach(([s, c], i) => { const k = seg(t, 1.0 + i * .55, 1.4 + i * .55); tl += `<div style="display:flex;align-items:center;gap:${px(16)};margin-top:${px(i ? 22 : 18)};opacity:${k}"><span style="width:${px(22)};height:${px(22)};border-radius:50%;background:${c};flex:none;box-shadow:0 0 0 ${px(6)} rgba(255,255,255,.06)"></span><span style="font-size:${px(23)}">${s}</span></div>`; });
+    const p3 = `<div class="panel" style="left:${px(xs[2])};top:${px(top)};width:${px(pw)};height:${px(ph)};border-top-color:${C.teal};${tilt(2)}"><div class="pt">Late report, then a waiver</div><div class="ps">Tarrowmere Aerospace Components</div>${tl}</div>`;
+    return waves(t) + p1 + p2 + p3 + cap("Pricing, defaults and waivers follow written rules, on set dates.", t, dur, C.amber);
+  },
+  networks(t, dur) {
+    const iso = (cx, y, w, h, top, l, r) => {
+      const P = (pts) => pts.map((p) => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+      return `<polygon points="${P([[cx - w, y], [cx, y + w / 2], [cx, y + w / 2 + h], [cx - w, y + h]])}" fill="${l}"/>` +
+        `<polygon points="${P([[cx, y + w / 2], [cx + w, y], [cx + w, y + h], [cx, y + w / 2 + h]])}" fill="${r}"/>` +
+        `<polygon points="${P([[cx, y - w / 2], [cx + w, y], [cx, y + w / 2], [cx - w, y]])}" fill="${top}" stroke="rgba(255,255,255,.35)" stroke-width="1.5"/>`;
+    };
+    const stack = (cx, base, color, light, dark, label, n, kstart) => {
+      let s = "";
+      for (let i = 0; i < 5; i++) {
+        const k = seg(t, kstart + i * .3, kstart + i * .3 + .5);
+        const yy = base - i * 62 - (1 - k) * 120;
+        if (k > 0) s += `<g opacity="${k}">` + iso(cx, yy, 150, 52, light, color, dark) + `</g>`;
+      }
+      const cnt = Math.round(n * seg(t, kstart, kstart + 2.2));
+      s += `<text x="${cx}" y="${base - 380}" fill="#fff" font-size="96" font-family="Fraunces" font-weight="600" text-anchor="middle">${cnt}</text><text x="${cx}" y="${base - 340}" fill="${C.muted}" font-size="24" font-family="InterV" text-anchor="middle">transactions</text><text x="${cx}" y="${base + 260}" fill="#fff" font-size="32" font-family="Fraunces" font-weight="600" text-anchor="middle">${label}</text>`;
+      return s;
+    };
+    const svg = `<svg class="abs" style="left:0;top:0" width="${W}" height="${H}" viewBox="0 0 1920 1080">${stack(470, 600, "#1a8f83", "#3fd9c7", "#12665e", "GenLayer Studio", 66, .3)}${stack(1450, 600, "#6a4fc0", "#a98ff0", "#4a3690", "Testnet Bradbury", 63, .6)}</svg>`;
+    const mid = `<div class="abs" style="left:${px(660)};top:${px(330)};width:${px(600)};text-align:center;${rise(t, 3.0, 3.5)}"><div class="num" style="font-size:${px(120)};color:${C.amber};line-height:1">129</div><div style="font-size:${px(26)};margin-top:${px(8)}">live transactions</div><div class="muted" style="font-size:${px(22)};margin-top:${px(18)}">Identical readings on both networks: 15 of 15</div></div>`;
+    return waves(t) + svg + mid + cap("Five fictional borrowers, end to end on GenLayer Studio and on the Bradbury testnet.", t, dur, C.mauve);
+  },
+  site(t, dur) {
+    const bw = 1000, bh = 760, ih = bw * D.shot_ratio;
+    const off = (ih - bh) * 0.62 * seg(t, .6, dur - .4);
+    const inner = `<img src="${D.shot}" style="top:${px(-off)}">`;
+    const br = `<div class="abs" style="left:${px(800)};top:${px(150)};perspective:${px(2200)};${op(t, 0, .4)}">${browser("privatecredit.brilliantnodes.com/?net=bradbury&id=3", bw, bh, inner, `rotateY(${lerp(-24, -16, seg(t, 0, dur))}deg) rotateX(5deg)`)}</div>`;
+    const left = `<div class="abs" style="left:${px(120)};top:${px(260)};width:${px(620)}"><div class="h" style="font-size:${px(58)};${rise(t, .1, .5)}">Every reading and transaction, on the site.</div>
+      <div style="font-size:${px(32)};color:${C.amber};font-weight:600;margin-top:${px(30)};${op(t, .5, .9)}">privatecredit.brilliantnodes.com</div>
+      <div class="muted" style="font-size:${px(25)};margin-top:${px(14)};line-height:1.35;${op(t, .7, 1.1)}">Run your own facility on Studio with free test accounts.</div></div>`;
+    return waves(t) + br + left + cap("Each reading links to its report page, each transaction to the explorer.", t, dur, C.teal);
+  },
+  end(t, dur) {
+    const ros = `<div class="abs" style="left:${px(960 - 520)};top:${px(540 - 520)};width:${px(1040)};height:${px(1040)};opacity:.22;perspective:${px(1500)}"><div style="transform:rotateX(40deg) rotateZ(${t * 10}deg)">${rosette(1040, 1, 0, .01)}</div></div>`;
+    const logo = `<svg width="${px(120)}" height="${px(120)}" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#153d33"/><path d="M136 400 V236 a120 120 0 0 1 240 0 V400" fill="none" stroke="#f3efe6" stroke-width="30"/><g stroke="#f3efe6" stroke-width="16" stroke-linecap="round"><line x1="206" y1="190" x2="206" y2="400"/><line x1="256" y1="168" x2="256" y2="400"/><line x1="306" y1="190" x2="306" y2="400"/></g><line x1="104" y1="400" x2="408" y2="400" stroke="#f3efe6" stroke-width="30" stroke-linecap="round"/><circle cx="380" cy="150" r="70" fill="#e6b84a"/><path d="M346 152 l24 24 l44 -48" fill="none" stroke="#153d33" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const c = `<div class="abs" style="left:0;right:0;top:${px(250)};display:flex;flex-direction:column;align-items:center;text-align:center">
+      <div style="${rise(t, 0, .4)}">${logo}</div>
+      <div class="h" style="font-size:${px(112)};margin-top:${px(18)};${rise(t, .1, .5)}">PrivateCreditGate</div>
+      <div style="font-size:${px(34)};margin-top:${px(10)};${op(t, .3, .7)}">Covenant-gated credit on GenLayer</div>
+      <div class="muted" style="font-size:${px(26)};margin-top:${px(10)};${op(t, .45, .85)}">For an estimated $3 trillion private credit market</div>
+      <div style="font-size:${px(36)};color:${C.amber};font-weight:600;margin-top:${px(40)};${op(t, .6, 1.0)}">privatecredit.brilliantnodes.com</div>
+      <div class="muted" style="font-size:${px(24)};margin-top:${px(10)};${op(t, .7, 1.1)}">github.com/brilliantnodes/privatecredit-gate</div></div>
+      <div class="abs muted" style="left:0;right:0;bottom:${px(46)};text-align:center;font-size:${px(20)}">Fictional companies; demo data on test networks. Not an offer of credit.</div>`;
+    return ros + c;
+  },
+};
+
+function draw(name, t, dur, fadeIn, fadeOut) {
+  const body = SCENES[name](t, dur);
+  const veil = Math.max(fadeIn ? 1 - clamp(t / .35) : 0, fadeOut ? clamp((t - (dur - .35)) / .35) : 0);
+  S.innerHTML = (name === "end" || name === "title" ? "" : topbar()) + body + `<div id="veil" style="opacity:${veil}"></div>`;
+  return Promise.all([...S.querySelectorAll("img")].map((im) => im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; })));
+}
+</script></body></html>
