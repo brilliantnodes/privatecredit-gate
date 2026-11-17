@@ -208,8 +208,8 @@ function render(f) {
     ["Drawn in total", gen(m.drawn_total)],
     ["Undrawn commitment held", gen(m.undrawn_held)],
     ["DSRA held", gen(m.dsra_held)],
-    ["Interest and fees owed now", gen(BigInt(m.interest_owed) + BigInt(m.fees_owed))],
-    ["Payoff now", gen(m.payoff)],
+    ["Interest and fees owed now", f.written_off ? "0 GEN (written off at closing)" : gen(BigInt(m.interest_owed) + BigInt(m.fees_owed))],
+    ["Payoff now", f.written_off ? "0 GEN (written off at closing)" : gen(m.payoff)],
     ["Paid: fees / interest / principal", `${gen(m.paid_fees)} / ${gen(m.paid_interest)} / ${gen(m.paid_principal)}`],
     ["Default interest accrued", gen(m.default_interest_accrued)],
     ["Margin now", ["CLOSED", "CANCELLED"].includes(f.status) ? `none (facility ${f.status.toLowerCase()}; last band ${f.pricing.band})` : `band ${f.pricing.band}, ${bp(f.pricing.margin_bp)} (all-in ${bp(f.pricing.rate_bp)}${f.pricing.default_interest_on ? ", default add-on on" : ""})`],
@@ -398,8 +398,8 @@ const ORDER = STEPS.map((s) => s[0]);
 const FINAL_BAD = {
   UNDETERMINED: "The validators did not agree, so nothing changed. This is the safe outcome when a page is unclear. You can test again while the window is open.",
   CANCELED: "The transaction was cancelled. Nothing changed.",
-  LEADER_TIMEOUT: "The leader did not answer in time. Nothing changed. You can try again.",
-  VALIDATORS_TIMEOUT: "The validators did not answer in time. Nothing changed. You can try again.",
+  LEADER_TIMEOUT: "The leader did not answer in time. The network may still execute this transaction after rotating the leader: check it on the explorer before trying again.",
+  VALIDATORS_TIMEOUT: "The validators did not answer in time. The network may still execute this transaction: check it on the explorer before trying again.",
 };
 const statusOf = (tx) => String(tx?.statusName ?? tx?.status_name ?? "").toUpperCase();
 function drawSteps(cur, failed) {

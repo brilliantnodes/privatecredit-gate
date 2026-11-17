@@ -396,7 +396,7 @@ class Case:
         d1 = e(1) + R + K
         self.step("Apply time at the cure deadline (E1 falls)", "lender", "apply_time", [self.fid], at=d1 + 30,
                   expect=lambda r: r.get("status") == "DEFAULT")
-        self.step("Accelerate after the grace period (undrawn credited back, DSRA applied)", "lender", "accelerate", [self.fid],
+        self.step("Accelerate after the grace period (DSRA applied; the undrawn commitment returned at the availability end)", "lender", "accelerate", [self.fid],
                   at=d1 + GR + 60, expect=lambda r: r.get("ok") is True)
         self.step("Close with a write-off", "lender", "close", [self.fid], at=d1 + GR + 240,
                   expect=lambda r: r.get("ok") is True)

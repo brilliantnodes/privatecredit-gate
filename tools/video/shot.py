@@ -3,6 +3,7 @@
     python3 shot.py            # Bradbury facility #3 (Brenthollow) and the front page
 """
 import os
+from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 SITE = "https://privatecredit.brilliantnodes.com"
@@ -23,7 +24,7 @@ with sync_playwright() as p:
     print("shot_cards.jpg", box["width"], box["height"], round(box["height"] / box["width"], 4))
     pg.close()
     pg = b.new_page(viewport={"width": 1100, "height": 900}, device_scale_factor=1.5)
-    pg.goto("file:///home/claude/privatecredit-gate/docs/reports/brenthollow/bradbury-2/period-1.html")
+    pg.goto((Path(__file__).resolve().parents[2] / "docs/reports/brenthollow/bradbury-2/period-1.html").as_uri())
     pg.wait_for_timeout(500)
     pg.screenshot(path="shot_report.jpg", type="jpeg", quality=92, full_page=True)
     print("shot_report.jpg", pg.evaluate("[document.body.scrollWidth, document.body.scrollHeight]"))

@@ -9,13 +9,26 @@ facility stored at that transaction's time (or that nothing was stored, for
 a refused repeat or a round where the validators disagreed). Reads only.
 Exit code 1 on any mismatch.
 """
+import atexit
 import json
 import os
+import secrets
 import subprocess
 import sys
+import tempfile
+
+def _throwaway_key():
+    fd, path = tempfile.mkstemp(suffix=".key")
+    os.write(fd, ("0x" + secrets.token_hex(32)).encode())
+    os.close(fd)
+    atexit.register(os.remove, path)
+    return path
+
 
 JS = os.environ.get("BRADBURY_JS", os.path.join(os.path.dirname(os.path.abspath(__file__)), "bradbury"))
-KEY = os.environ.get("BRADBURY_READ_KEY", "/home/claude/keys/bradbury_mr.key")  # signs nothing: reads only
+# Reads need an account object but sign nothing. Without BRADBURY_READ_KEY a throwaway key is made
+# for this run and deleted afterwards (run `npm ci` in tools/bradbury first).
+KEY = os.environ.get("BRADBURY_READ_KEY") or _throwaway_key()
 NOTHING_STORED = ("UNDETERMINED", "LEADER_TIMEOUT", "VALIDATORS_TIMEOUT", "CANCELED")
 
 

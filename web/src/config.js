@@ -218,7 +218,7 @@ export const NETWORKS = {
           "0x3a1411ab7911dde206f03171bc646dfe65d3df9031674feeffd7791dd0f3b162"
         ],
         [
-          "Accelerate after the grace period (undrawn credited back, DSRA applied)",
+          "Accelerate after the grace period (DSRA applied; the undrawn commitment returned at the availability end)",
           "0x1c0c2f05c7a340e678391d7ae42d954d14a86460086acd823be56cb86056ee28"
         ],
         [
@@ -507,7 +507,7 @@ export const NETWORKS = {
           "0xbe383641d7363f342991010d64cd4f5a98a7371ac4291e06260342d546dda2ac"
         ],
         [
-          "Accelerate after the grace period (undrawn credited back, DSRA applied)",
+          "Accelerate after the grace period (DSRA applied; the undrawn commitment returned at the availability end)",
           "0x550eda51594282db6606b01113f886e95976bef070d20e4e79a2045aa6b2074a"
         ],
         [
@@ -605,5 +605,5 @@ export const TRY_TERMS = {
 };
 export const TRY_BORROWERS = {
   kelvardine: { company: "Kelvardine Shipping Ltd", note: "compliant every period" },
-  pellingrove: { company: "Pellingrove Foods plc", note: "period-1 leverage 3.73x: a breach you can cure (draw at least 3.1 GEN first)" },
+  pellingrove: { company: "Pellingrove Foods plc", note: "period-1 leverage 3.74x: a breach you can cure (draw at least 3.1 GEN first)" },
 };

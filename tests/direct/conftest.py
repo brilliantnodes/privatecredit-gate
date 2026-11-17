@@ -4,8 +4,8 @@
 def to_hex(addr_bytes):
     """Convert address bytes to checksummed hex matching contract output.
 
-    The contract's get_bets()/get_points() return keys via Address.as_hex,
-    which produces EIP-55 checksummed hex. Call after direct_deploy so the
+    The contract returns addresses via Address.as_hex, which produces
+    EIP-55 checksummed hex. Call after direct_deploy so the
     SDK is on sys.path.
     """
     if hasattr(addr_bytes, "as_hex"):
@@ -23,7 +23,7 @@ def _patch_warp():
     from gltest.direct import vm as _vm
 
     original = _vm.VMContext._refresh_gl_message
-    if getattr(original, "_rigsettle_patched", False):
+    if getattr(original, "_warp_patched", False):
         return
 
     def refresh(self):
@@ -35,7 +35,7 @@ def _patch_warp():
             gl.message_raw["datetime"] = self._datetime
             gl.message_raw["value"] = self._value
 
-    refresh._rigsettle_patched = True
+    refresh._warp_patched = True
     _vm.VMContext._refresh_gl_message = refresh
 
 

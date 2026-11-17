@@ -115,6 +115,8 @@ A payable call never reverts after money arrives: any refused request credits th
 ## Limits and disclosures
 
 - **Trust in the published figures.** The facility trusts the borrower's published figures, as a real compliance certificate does. Misreporting is outside what any reading can catch.
+- **The figures are public.** The report page is a public web page, and the agreed figures are stored on a public chain. Real private-credit reporting is usually confidential (LMA confidentiality undertakings). The pattern fits borrowers that already publish their figures, such as listed or bond-issuing companies. For confidential reporting it needs validators that can read access-controlled sources.
+- **Page format.** Reports must be HTML pages; PDFs are not read. Validators read the rendered text, and only its first 12,000 characters (`PAGE_CHARS`).
 - **Whoever hosts the report controls what is read.** The lender sets the report addresses at creation, and the borrower agrees to them by accepting.
   - A borrower should accept only addresses on a host it controls, and should not change a page once it is published.
   - In this demo the pages for the fictional borrowers are hosted on this project's own site. During the Tarrowmere story the period-1 page was replaced on purpose, while its window was open, to show "not yet published" followed by a page without units.
@@ -134,6 +136,7 @@ A payable call never reverts after money arrives: any refused request credits th
   Each of these is a NO_READING, and at the window close the report counts as missing, which means the top band and then E2.
   - The time-zone check relies on the model copying the zone as printed; the form asks it to and never to convert. A time printed with no zone is read as UTC.
   - The residual risk is a decimal-comma page whose decimal mark the model misreads as a dot.
+- **Someone must test.** Nothing runs on its own: a covenant test happens only when someone calls `test_period` during the report window. If nobody does, the period counts as missing at the window close (top band, then E2), even if the page was published. The borrower has the strongest reason to test; the lender or anyone else may.
 - **Who tests first.** Within a report window, whoever tests first fixes the moment of the official reading. This changes no money, because margins and deadlines are fixed. Lender, borrower and anyone else may test as soon as the period ends.
 - **Cure money.** The contract cannot tell whether the GEN sent as an equity cure is new equity. It counts only the principal the cure actually prepays. The cure pays all interest accrued on the whole loan first; LMA practice requires only accrued interest on the amount prepaid.
 - **Default interest** applies to the whole loan while an event of default continues. LMA usually charges it on overdue amounts only.
@@ -146,9 +149,13 @@ A payable call never reverts after money arrives: any refused request credits th
   - The only events of default are E1–E4. There is no cross-default, insolvency, misrepresentation or change-of-control event.
   - E2 cannot be remedied by delivering the report late; the lender can waive it.
   - The covenant figures follow the borrower's printed labels (LTM EBITDA, net finance costs, total borrowings, cash), not definitions negotiated in a facility agreement.
+  - One lender per facility. No transfer, assignment or amendment of terms after creation.
+  - An event of default adds default interest but does not move the margin to the top band.
+  - The loan is in GEN while the covenants are in the report's currency, converted at a rate frozen at creation (`units_per_gen`). The demo uses 1 GEN = EUR 10m.
 - **Day count.** `year_seconds` sets the day count: 365 days for ACT/365, 360 days for ACT/360. The demo compresses a year into four 65-minute periods so the amounts are visible.
+- **Demo schedule.** With 65-minute periods, 30-minute report and cure windows and a 15-minute grace, acceleration for a period-1 breach can only come after maturity. In the Oskendale story the lender therefore accelerates a loan that has already matured unpaid, to apply the DSRA and close the facility.
 - **Term facility.** Repaid amounts cannot be redrawn. The undrawn commitment stays available until the availability end unless the borrower cancels it.
-- **Write-off.** A write-off ends this facility's record, not any legal claim.
+- **Write-off.** A write-off ends this facility's record, not any legal claim. After a write-off, `get_facility` still reports the written-off interest under `interest_owed` and `payoff`; the site shows 0 for a written-off facility. A payment to a closed facility is credited straight back.
 - **Indexes.** The offers list (`get_offers`) is a convenience index of the latest 200 offers to a borrower and can be flooded. A facility can always be opened by id.
 - **Withdrawals on Bradbury.** `withdraw(amount)` sends GEN to the caller as an external message, so the transaction must carry an external-message fee allocation for a transfer to the caller's own address. The site's Bradbury view is read-only; with genlayer-js 2 this is a `messageAllocations` entry for your own address, as in our runner (100,000 gas at 1 gwei). A withdrawal sent without one can be dropped by the network, and the amount withdrawn is then gone. A small first `withdraw(amount)` is a cheap way to check your setup.
 
@@ -175,6 +182,22 @@ A payable call never reverts after money arrives: any refused request credits th
 | `get_rules()` | view | Every rule, for audit. |
 | `get_latest`, `get_by_party`, `get_offers`, `get_count`, `get_locked` | view | Indexes and totals. |
 
+## Run it yourself
+
+Tested with Python 3.13 and Node 22.
+
+```
+python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt
+PYTHONPATH=. pytest tests/direct                 # the 369 tests, no network
+python tools/pcg.py deploy                       # your own copy on GenLayer Studio (throwaway key)
+cd web && npm ci && npm run dev && cd ..          # the site; PCG addresses are in web/src/config.js
+cd tools/bradbury && npm ci && cd ../..          # Bradbury read tools (genlayer-js 2)
+python tools/verify_record.py examples/live/bradbury-bradbury-2-merged.json
+python tools/check_bradbury_code.py
+```
+
+The two Bradbury checks only read, with a throwaway key made for the run (or the key file named in `BRADBURY_READ_KEY`).
+
 ## Checks
 
 - `PYTHONPATH=. pytest tests/direct` runs the direct-mode tests (369 tests), with web pages and the model mocked. They cover:
@@ -189,7 +212,8 @@ A payable call never reverts after money arrives: any refused request credits th
 - `PYTHONPATH=. python tools/mutate.py` breaks the contract on purpose, one change at a time, and checks that the tests catch every break: 198 of 198 caught. The equivalent mutants left out are listed in the tool.
 - `genvm-lint check contracts/privatecredit_gate.py` runs the GenLayer linter.
 - `python tools/verify_record.py examples/live/bradbury-<tag>.json` checks a Bradbury run record against the chain, transaction by transaction.
-- Independent reviews, each by an agent wearing private-credit and GenLayer hats, preceded each deployment: four before the first, two before the second. Every finding was fixed, or disclosed above.
+- **The code on Bradbury.** To fit Bradbury's deployment limits, the contract is deployed as `bradbury/build/privatecredit_gate.py`: the same source, packed by `tools/port_bradbury.py --pack` into a short stub that decompresses and runs it. A test checks that the build unpacks to this source. `python tools/check_bradbury_code.py` reads the deploy transaction ([0x021fd787…748d](https://scan.bradbury.genlayer.com/tx/0x021fd78789d9aa0f570a20199d1bbf139dd6fa4fed486f5566acfded682d748d)) and confirms that its code is byte-identical to the build. On Studio the deployed code is the source file itself.
+- Independent reviews, each by an agent wearing private-credit and GenLayer hats, preceded each deployment: four before the first, two before the second, and one of the whole package before submission. Every finding was fixed, or disclosed above.
 
 ## Live runs (second deployment, 17 November 2026)
 
@@ -207,14 +231,14 @@ The five stories end the same way on both networks:
 - **Ashcarrow Logistics**, compliant throughout: an acceptance with the wrong DSRA is refused and credited back, then three tranches, three readings, repaid at maturity.
 - **Quillstrand Materials**, compliant but leverage rises: the margin steps up from band 1 to band 3 at the period-1 window close; repaid at maturity.
 - **Brenthollow Foods**, leverage breach in period 1 (3.75x against 3.50x): a cure that is too small is refused and credited back, the equity cure from `quote_cure` prepays the principal needed, period 2 is compliant, repaid at maturity.
-- **Oskendale Retail**, breach not cured: E1 falls at the cure deadline. After the grace period the lender accelerates: the undrawn commitment is credited back and the DSRA applied. The lender then closes with a write-off.
+- **Oskendale Retail**, interest-cover breach in period 1 (3.11x against 4.00x), which no equity cure can fix: E1 falls at the cure deadline. The loan reaches maturity unpaid, and the undrawn commitment returns to the lender at the availability end. After the grace period the lender accelerates (the DSRA is applied) and closes with a write-off.
 - **Tarrowmere Aerospace**, late report: period 1 is first NOT_PUBLISHED, then a page without units (NO_READING, `N2_UNITS_MISSING`). The window closes with no reading (top band), E2 falls, and the lender waives the covenant for period 1. Period 2 is compliant; repaid at maturity.
 
 At the end of the Bradbury run the contract held nothing: `get_locked()` 0, `get_claims_total()` 0, balance 0. The lender withdrew 4.727134 GEN and the borrower 3.118959 GEN, each in one transaction.
 
 **What Bradbury showed.**
 - **A leader timeout can still execute.** Brenthollow's period-1 test was first reported as a leader timeout. After leader rotation the same transaction executed and stored the official reading. The runner, which had read the timeout as "nothing stored", tested again five times. Each repeat was refused because the period already had its reading, and nothing changed. The runner now waits for a timed-out transaction's final state before testing again.
-- **The continuation.** The runner's thread for that facility stopped at that point, and a continuation script finished the story (cure, period 2, repayment). `bradbury-bradbury-2.json` and `bradbury-bradbury-2-brenthollow-continued.json` are the two records as written. `tools/merge_continuation.py` combines them into the merged record without changing either. The timed-out step keeps the status first seen under `recorded_status`.
+- **The continuation.** Once the timeout was reported, a continuation script was started for that facility while the runner was still retrying. The two overlapped for a few minutes: the continuation's refused small cure came before the runner's last repeat. The continuation finished the story (cure, period 2, repayment), and the runner's thread for that facility stopped. `bradbury-bradbury-2.json` and `bradbury-bradbury-2-brenthollow-continued.json` are the two records as written. `tools/merge_continuation.py` combines them into the merged record without changing either. The timed-out step keeps the status first seen under `recorded_status`.
 - **Refusals are credited.** Both refused payable calls (wrong DSRA, cure too small) were credited back to the sender in the same transaction, and the senders later withdrew them with the rest.
 - **Withdrawals reach the wallet.** Each withdrawal carried an external-message allocation for the caller's own address and was finalized, and each caller's claimable amount fell to 0. The record also shows each wallet's balance change across its withdrawal. The borrower's rose by the amount credited less that transaction's fees. The lender's rose by 0.0998 GEN more than its credit. That interval most likely also took in fee refunds as the lender's last transactions finalized; we did not trace them one by one.
 

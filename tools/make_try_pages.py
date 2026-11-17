@@ -4,7 +4,7 @@
 Two fictional borrowers, one page set per hourly slot (period 0 ends on the
 hour, UTC), for the next DAYS days:
   kelvardine  Kelvardine Shipping Ltd: compliant every period
-  pellingrove  Pellingrove Foods plc: period-1 leverage 3.73x, a curable breach
+  pellingrove  Pellingrove Foods plc: period-1 leverage 3.74x, a curable breach
 
     python tools/make_try_pages.py [days]
 

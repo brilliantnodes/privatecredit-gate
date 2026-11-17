@@ -6,8 +6,10 @@
 
 Used once, for Brenthollow on Bradbury: the runner recorded its period-1 test
 as a leader timeout, but after leader rotation the same transaction executed
-and stored the official reading. The runner's thread for that facility then
-stopped; a continuation script finished the story (cure, period 2, repayment).
+and stored the official reading. A continuation script was started for that
+facility while the runner was still retrying (the two overlapped for a few
+minutes); it finished the story (cure, period 2, repayment) and the runner's
+thread for that facility then stopped.
 
 This keeps both input files unchanged and writes a third file in which:
   - the timed-out step carries the chain's final status and the reading the

@@ -22,8 +22,15 @@ ROOT = Path(__file__).resolve().parent.parent
 CFG = ROOT / "web/src/config.js"
 
 
+# Clearer wording for labels in records written before a runner label changed.
+RELABEL = {
+    "Accelerate after the grace period (undrawn credited back, DSRA applied)":
+        "Accelerate after the grace period (DSRA applied; the undrawn commitment returned at the availability end)",
+}
+
+
 def label_for(s, read_periods):
-    label = s["label"]
+    label = RELABEL.get(s["label"], s["label"])
     if s["fn"] != "test_period":
         return label
     res = s.get("result") or {}

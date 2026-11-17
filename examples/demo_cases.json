@@ -75,7 +75,7 @@
       "slug": "tarrowmere",
       "company": "Tarrowmere Aerospace Components",
       "currency": "EUR",
-      "story": "Draws before period 1. The period-1 page first leaves out the units (no reading, N2), then says the report is not yet published; the window closes with no reading, the top band applies, E2 falls and the lender waives it.",
+      "story": "Draws before period 1. The period-1 page first says the report is not yet published, then leaves out the units (no reading, N2); the window closes with no reading, the top band applies, E2 falls and the lender waives it.",
       "styles": ["table", "units_missing", "table"],
       "periods": [
         {"ltm_ebitda": 21000, "ltm_net_finance_costs": 3000, "total_debt": 52000, "cash": 10000},
