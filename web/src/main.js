@@ -52,7 +52,11 @@ function gen(wei, keep = 4) {
   const neg = n < 0n;
   const a = neg ? -n : n;
   const w = a / 10n ** 18n;
-  const f = (a % 10n ** 18n).toString().padStart(18, "0").slice(0, keep).replace(/0+$/, "");
+  const digits = (a % 10n ** 18n).toString().padStart(18, "0");
+  // Show small non-zero amounts to their first significant digits rather than as 0.
+  const lead = digits.search(/[1-9]/);
+  const cut = w === 0n && lead >= keep ? Math.min(18, lead + 2) : keep;
+  const f = digits.slice(0, cut).replace(/0+$/, "");
   return `${neg ? "-" : ""}${w}${f ? "." + f : ""} GEN`;
 }
 function eur(units) {
