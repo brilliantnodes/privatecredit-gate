@@ -6,7 +6,7 @@
 <title>PrivateCreditGate: a covenant-gated credit facility on GenLayer</title>
 <meta name="description" content="Validators read the borrower's published compliance report; plain code applies the facility agreement. Fictional demo, test GEN only.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23143d33'/%3E%3Cpath d='M9 20l5 5 9-15' stroke='%23e4c66b' stroke-width='3.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-  <script type="module" crossorigin src="./assets/index-C5l0di_0.js"></script>
+  <script type="module" crossorigin src="./assets/index-DtmcsNg-.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/genlayer-Cfg8olpj.js">
   <link rel="stylesheet" crossorigin href="./assets/index-MTuEweRi.css">
 </head>
@@ -22,7 +22,7 @@
 <main class="wrap">
   <section class="hero">
     <h1>A credit facility whose covenants test themselves.</h1>
-    <p class="lede">In private credit, every quarter someone at the lender reads the borrower's compliance report and keys the numbers in by hand. Errors, delays and arguments over <em>what the report says</em> all happen at that step. Here, GenLayer validators each read the borrower's own published report, copy four figures into a fixed form, and plain code applies the facility agreement. Money moves only on figures every accepting validator copied exactly the same.</p>
+    <p class="lede">In private credit, every quarter someone at the lender reads the borrower's compliance report and keys the numbers in by hand. Errors, delays and arguments over <em>what the report says</em> all happen at that step. Here, GenLayer validators each read the borrower's own published report, copy four figures into a fixed form, and plain code applies the facility agreement. Figures are stored, and money moves, only if a majority of validators arrived at exactly the same four amounts.</p>
     <p class="note" id="net-note"></p>
   </section>
 
@@ -52,6 +52,7 @@
       <button class="ghost" id="fac-reload" type="button">Reload</button>
     </div>
     <p class="small" id="fac-asof"></p>
+    <p class="small" id="fac-credits"></p>
     <div class="grid2">
       <div class="panel">
         <h3>Money</h3>
@@ -96,7 +97,7 @@
 
   <section id="try">
     <h2>Run your own facility</h2>
-    <p class="small" id="try-intro">On Studio you can play both sides with free temporary accounts. Your facility's first period ends on the next whole hour (UTC) at least 20 minutes away; each period is 65 minutes, with a 30-minute report window and a 30-minute cure window after each period end. The report pages of two fictional borrowers are ready for every hourly slot.</p>
+    <p class="small" id="try-intro">On Studio you can play both sides with free temporary accounts. Your facility's first period ends on the next whole hour (UTC) at least 20 minutes away; each period is 65 minutes, with a 30-minute report window and a 30-minute cure window after each period end. The report pages of two fictional borrowers are published for every hourly slot of the coming weeks; the page checks they exist before you offer. Payouts are credited to each account, which withdraws them with one click.</p>
     <div class="grid2">
       <div class="panel">
         <h3>Lender</h3>
@@ -128,14 +129,15 @@
   <section id="rules" class="panel">
     <h2>The rules, in brief</h2>
     <ul class="rules">
-      <li><strong>Agreement is exact on everything stored:</strong> the outcome kind, the reason code of a no-reading, and all four figures. Only a READ is final; the first READ in a period's window is its official reading.</li>
+      <li><strong>Agreement is exact on everything stored:</strong> the outcome kind, the reason code of a no-reading, and all four figures after conversion and rounding. Only a READ binds; the first READ in a period's window is its official reading.</li>
       <li><strong>The model copies; code decides.</strong> Company, period end to the minute, currency, LTM labels and scales are checked in code. Ambiguous figures (12.450, 6,28, a decimal comma, other time zones) are refused, never guessed.</li>
-      <li><strong>Finance costs</strong> take their sign from the line label, classified in code (reports print expenses in brackets).</li>
+      <li><strong>Finance costs</strong> take their sign from the line label, classified in code: a cost line is a cost whatever its brackets (reports print expenses in brackets).</li>
       <li><strong>Draw stop:</strong> from each period end until that period has a compliant, cured or waived reading. The period-0 reading is the condition precedent.</li>
-      <li><strong>Margin</strong> from the leverage band at the window close; a missing report means the top band.</li>
+      <li><strong>Margin</strong> from the leverage band of the official reading (period 0 from its test, later periods from the window close); a missing report means the top band.</li>
       <li><strong>Equity cure</strong> before the cure deadline: at most two, never consecutive; only the principal it prepays counts against net debt; it fixes leverage only.</li>
-      <li><strong>Events of default</strong> on fixed dates: E1 uncured breach, E2 missing report, E3 unpaid interest (remedied by payment), E4 principal unpaid after maturity. The lender may waive E1 to E3 and accelerate in default.</li>
-      <li><strong>Waterfall:</strong> fees, interest, then principal that is due or that the borrower chooses to prepay; any excess comes back. A refused payment always comes back.</li>
+      <li><strong>Events of default</strong> on fixed dates: E1 uncured breach, E2 missing report, E3 unpaid interest (remedied by payment), E4 principal unpaid after maturity. The lender waives a covenant (E1, E2) or a payment default (E3) separately, and may accelerate once an event has continued for the grace period.</li>
+      <li><strong>Waterfall:</strong> fees, interest, then principal that is due or that the borrower chooses to prepay; any excess is credited back. A refused payment is always credited straight back.</li>
+      <li><strong>Payouts are credits:</strong> draws, refunds and returns are credited to the payee, who withdraws them. Nobody else's transaction can lose them.</li>
     </ul>
     <p class="small">Full rules, limits and disclosures: <a id="readme-link" target="_blank" rel="noopener noreferrer">README</a>. The contract's own <code>get_rules()</code> returns the same text on chain.</p>
   </section>

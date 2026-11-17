@@ -1,6 +1,6 @@
 """Direct-mode tests for PrivateCreditGate. Web pages and the LLM are mocked.
 
-Every company, figure and page is fictional (Harbourline Logistics Ltd);
+Every company, figure and page is fictional (Ashcarrow Logistics Ltd);
 only test GEN moves.
 """
 
@@ -23,14 +23,15 @@ E0 = T0 + 600  # period 0 ends 12:10 UTC
 P = 4200  # 70-minute periods
 R = 1800  # report window
 K = 1800  # cure window
+GR = 900  # an event must continue this long before acceleration
 N = 3
 Y = 4 * P  # day-count year: four periods (demo compression)
 A = E0 + 6000  # availability end, between period 1 end and maturity
 M = E0 + (N - 1) * P  # maturity = last period end
-BASE = "https://privatecredit.example/reports/harbourline/"
+BASE = "https://privatecredit.example/reports/ashcarrow/"
 URL_RE = re.escape(BASE) + r"period-\d+\.html"
 PROMPT = r"(?s).*compliance report into a fixed form.*"
-NAME = "Harbourline Logistics Ltd"
+NAME = "Ashcarrow Logistics Ltd"
 GRID = "250:300,300:400,350:500,*:650"
 BASE_BP, FEE_BP, DEF_BP = 500, 50, 200
 COMMIT = 10 * G
@@ -84,10 +85,16 @@ def rep(ebitda="15,000", fin="2,000", debt="40,000", cash="5,000", n=0, scale="t
 
 
 class Sent:
-    """Captures GEN transfers the contract emits."""
+    """What the contract has paid out to an address: GEN credited to it
+    (withdrawable) plus GEN transferred to it by withdraw(), counted from the
+    last clear()."""
 
     def __init__(self):
         self.items = []
+        self.c = None
+        self.base = {}
+        self.base_total = 0
+        self.watch = []
 
     def __call__(self, vm, request):
         key = "EmitExternalMessage" if isinstance(request, dict) and "EmitExternalMessage" in request else "EthSend"
@@ -97,14 +104,19 @@ class Sent:
             return {"ok": None}
         return None
 
-    def to(self, addr):
+    def emitted_to(self, addr):
         return sum(v for a, v in self.items if a.lower() == addr.lower())
 
+    def to(self, addr):
+        return self.emitted_to(addr) + int(self.c.get_claimable(addr)) - self.base.get(addr.lower(), 0)
+
     def total(self):
-        return sum(v for _, v in self.items)
+        return sum(v for _, v in self.items) + int(self.c.get_claims_total()) - self.base_total
 
     def clear(self):
         self.items.clear()
+        self.base = {a.lower(): int(self.c.get_claimable(a)) for a in self.watch}
+        self.base_total = int(self.c.get_claims_total())
 
 
 @pytest.fixture
@@ -121,6 +133,7 @@ def env(direct_vm, direct_deploy, direct_alice, direct_bob, direct_charlie):
     e.vm, e.c, e.sent = direct_vm, c, sent
     e.alice, e.bob, e.charlie = direct_alice, direct_bob, direct_charlie
     e.lender, e.borrower, e.other = to_hex(direct_alice), to_hex(direct_bob), to_hex(direct_charlie)
+    sent.c, sent.watch = c, [e.lender, e.borrower, e.other]
     return e
 
 
@@ -136,7 +149,7 @@ def terms(e, **over):
     t = dict(
         borrower=e.borrower, company_name=NAME, currency="EUR", report_base_url=BASE, units_per_gen=UPG, resolution=RES,
         tranche_cap=CAP, first_period_end=E0, period_seconds=P, num_periods=N, report_seconds=R, cure_seconds=K,
-        availability_end=A, year_seconds=Y, base_bp=BASE_BP, grid=GRID, fee_bp=FEE_BP, default_bp=DEF_BP,
+        grace_seconds=GR, availability_end=A, year_seconds=Y, base_bp=BASE_BP, grid=GRID, fee_bp=FEE_BP, default_bp=DEF_BP,
         max_leverage_x100=350, min_cover_x100=400, min_cash=2_000_000,
     )
     t.update(over)
@@ -144,7 +157,7 @@ def terms(e, **over):
 
 
 ORDER = ("borrower", "company_name", "currency", "report_base_url", "units_per_gen", "resolution", "tranche_cap",
-         "first_period_end", "period_seconds", "num_periods", "report_seconds", "cure_seconds", "availability_end",
+         "first_period_end", "period_seconds", "num_periods", "report_seconds", "cure_seconds", "grace_seconds", "availability_end",
          "year_seconds", "base_bp", "grid", "fee_bp", "default_bp", "max_leverage_x100", "min_cover_x100", "min_cash")
 
 
@@ -173,7 +186,7 @@ def ready(e, **over):
     e.sent.clear()
 
 
-def run_test(e, n, answer, at=None, who=None, page="Harbourline Logistics Ltd compliance report"):
+def run_test(e, n, answer, at=None, who=None, page="Ashcarrow Logistics Ltd compliance report"):
     e.vm.clear_mocks()
     e.vm.warp(iso(end(n) + 60 if at is None else at))
     e.vm.sender = who or e.charlie
@@ -491,7 +504,7 @@ def test_unparseable_model_answer(env):
     [
         (dict(kind="other"), "N1_WRONG_PAGE"),
         (dict(kind="unavailable"), "N1_WRONG_PAGE"),
-        (dict(name="Harbourline Shipping Ltd"), "N1_WRONG_PAGE"),
+        (dict(name="Ashcarrow Shipping Ltd"), "N1_WRONG_PAGE"),
         (dict(name=""), "N1_WRONG_PAGE"),
         (dict(draft="yes"), "N3_NOT_FINAL"),
         (dict(period="2026-11-16 12:11"), "N2_WRONG_PERIOD"),
@@ -1006,7 +1019,7 @@ def test_cure_needs_something_owed(env):
 def test_cure_limits_end_to_end(env):
     ready(env, max_leverage_x100=250, num_periods=4, availability_end=E0 + 3 * P)
     run_test(env, 0, rep(debt="45,000"))  # breach at period 0, nothing drawn
-    as_lender(env, "waive", 0, at=end(0) + 100)
+    as_lender(env, "waive", 0, "all", at=end(0) + 100)
     draw(env, 4 * G, end(0) + 200)
     tick(env, end(1))
     pay(env, int(fac(env)["periods"][1]["due_through"]) - money(env, "paid_fees") - money(env, "paid_interest"), end(1) + 10)
@@ -1079,20 +1092,20 @@ def test_waiver_returns_default_to_active_and_stops_default_interest(env):
     assert fac(env)["status"] == "DEFAULT"
     with env.vm.expect_revert("only the lender"):
         env.vm.sender = env.bob
-        env.c.waive("1", 1)
-    out = as_lender(env, "waive", 1, at=deadline(1) + 300)
+        env.c.waive("1", 1, "all")
+    out = as_lender(env, "waive", 1, "all", at=deadline(1) + 300)
     assert out["waived"] == ["missing report", "E2"] and out["status"] == "ACTIVE"
     f = fac(env, deadline(1) + 1200)
     assert f["pricing"]["default_interest_on"] is False and f["periods"][1]["status"] == "WAIVED"
     assert int(f["money"]["default_interest_accrued"]) == accrued(2 * G, DEF_BP, 300) // (BP * Y)
     draw(env, G, deadline(1) + 400)  # a waived period lifts the draw stop
     with env.vm.expect_revert("nothing to waive for period 1"):
-        as_lender(env, "waive", 1, at=deadline(1) + 500)
+        as_lender(env, "waive", 1, "all", at=deadline(1) + 500)
 
 
 def test_waiver_of_a_breach_before_the_deadline(env):
     breach1(env)
-    out = as_lender(env, "waive", 1, at=close_(1) + 10)
+    out = as_lender(env, "waive", 1, "all", at=close_(1) + 10)
     assert out["waived"] == ["covenant breach"] and out["status"] == "ACTIVE"
     tick(env, deadline(1) + 1)
     assert fac(env)["events"] == []
@@ -1104,7 +1117,7 @@ def test_waiver_covers_e3_of_that_period(env):
     run_test(env, 1, rep(n=1))
     tick(env, end(1) + K)
     assert fac(env)["events"][0]["code"] == "E3"
-    out = as_lender(env, "waive", 1, at=end(1) + K + 10)
+    out = as_lender(env, "waive", 1, "all", at=end(1) + K + 10)
     assert out["waived"] == ["E3"] and out["status"] == "ACTIVE"
 
 
@@ -1119,7 +1132,7 @@ def test_maturity_default_e4_cannot_be_waived(env):
     f = fac(env)
     assert [e["code"] for e in f["events"]] == ["E4"] and f["events"][0]["period"] == -1
     with env.vm.expect_revert("nothing to waive"):
-        as_lender(env, "waive", 2, at=M + K + 10)
+        as_lender(env, "waive", 2, "all", at=M + K + 10)
 
 
 def test_full_repayment_at_maturity_closes_and_returns_the_dsra(env):
@@ -1233,7 +1246,7 @@ def test_after_acceleration_interest_runs_with_default_and_payment_closes(env):
     out = pay(env, int(f["money"]["payoff"]), later)
     assert out["status"] == "CLOSED"
     with env.vm.expect_revert("nothing to waive"):
-        as_lender(env, "waive", 1, at=later + 10)
+        as_lender(env, "waive", 1, "all", at=later + 10)
     assert p > 0 and base >= 0
 
 
@@ -1515,7 +1528,7 @@ def test_waived_missing_report_gives_no_e2(env):
     draw(env, G, end(0) + 100)
     pay_due(env, 1)
     tick(env, close_(1) + 10)
-    out = as_lender(env, "waive", 1, at=close_(1) + 20)
+    out = as_lender(env, "waive", 1, "all", at=close_(1) + 20)
     assert out["waived"] == ["missing report"]
     tick(env, deadline(1) + 10)
     assert fac(env)["events"] == [] and fac(env)["status"] == "ACTIVE"
@@ -1581,7 +1594,7 @@ def test_waiver_refused_after_acceleration(env):
     default1(env)
     as_lender(env, "accelerate", at=deadline(1) + 100)
     with env.vm.expect_revert("nothing to waive"):
-        as_lender(env, "waive", 1, at=deadline(1) + 200)
+        as_lender(env, "waive", 1, "all", at=deadline(1) + 200)
 
 
 def test_attempt_log_keeps_the_first_twenty(env):
@@ -1628,11 +1641,15 @@ def test_bracketed_finance_costs_are_still_costs(env):
     assert r["assessment"]["cover_ok"] is False and r["assessment"]["cover_text"] == "2.50x"
 
 
-def test_net_cost_line_printed_negative_is_refused(env):
-    # a NET cost line printed negative is ambiguous (US 'other expense (income)' blocks): refused
+@pytest.mark.parametrize("label", ["LTM net finance costs", "Net finance costs (note 7)", "Finance costs, net", "LTM net interest expense",
+                                   "Net finance expense", "Interest expense, net"])
+def test_cost_line_printed_negative_is_a_cost(env, label):
+    # 'Net finance costs (2,150)' is how IFRS statements print a cost; reading it as a cost
+    # can only lower interest cover (errs towards the lender), so it is a cost whatever its sign
     ready(env)
-    r = run_test(env, 0, rep(ebitda="5,000", fin="(2,000)", debt="20,000", cash="5,000"))
-    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FINANCE_LABEL"
+    r = run_test(env, 0, rep(ebitda="5,000", fin="(2,000)", fin_label=label, debt="20,000", cash="5,000"))
+    assert r["kind"] == "READ" and r["figures"]["ltm_net_finance_costs"] == "2000000"
+    assert r["assessment"]["cover_text"] == "2.50x" and r["assessment"]["cover_ok"] is False
 
 
 def test_finance_income_line_is_negative_and_unclear_label_is_no_reading(env):
@@ -1707,7 +1724,7 @@ def test_late_payment_remedies_e3_and_stops_default_interest(env):
     with env.vm.expect_revert("needs an open event of default"):
         as_lender(env, "accelerate", at=end(1) + K + 900)
     with env.vm.expect_revert("nothing to waive"):
-        as_lender(env, "waive", 1, at=end(1) + K + 950)
+        as_lender(env, "waive", 1, "all", at=end(1) + K + 950)
 
 
 def test_partial_late_payment_does_not_remedy(env):
@@ -1844,7 +1861,7 @@ def test_random_sequences_keep_the_books_exact(env):
         t = end(0) + 100
         while t < M + 2 * K:
             t += rnd.randint(30, 600)
-            act = rnd.choice(["draw", "pay", "prepay", "tick", "test", "waive", "accel", "cancel", "cure"])
+            act = rnd.choice(["draw", "pay", "prepay", "tick", "test", "waive", "accel", "cancel", "cure", "withdraw"])
             before = env.sent.total()
             try:
                 if act == "draw":
@@ -1859,7 +1876,11 @@ def test_random_sequences_keep_the_books_exact(env):
                     n = max(0, min(N - 1, (t - E0) // P))
                     run_test(env, n, rep(n=n, debt=rnd.choice(["40,000", "60,000"]), fin=rnd.choice(["2,000", "5,000"])), at=t)
                 elif act == "waive":
-                    as_lender(env, "waive", rnd.randint(0, N - 1), at=t)
+                    as_lender(env, "waive", rnd.randint(0, N - 1), rnd.choice(["covenant", "payment", "all"]), at=t)
+                elif act == "withdraw":
+                    env.vm.warp(iso(t))
+                    env.vm.sender = rnd.choice([env.alice, env.bob])
+                    env.c.withdraw()
                 elif act == "accel":
                     as_lender(env, "accelerate", at=t)
                 elif act == "cancel":
@@ -1875,6 +1896,8 @@ def test_random_sequences_keep_the_books_exact(env):
             f = fac(env)
             held = int(f["money"]["undrawn_held"]) + int(f["money"]["dsra_held"])
             assert received - env.sent.total() == held == int(env.c.get_locked()), (run, act, t)
+            # what the contract holds is what it locks plus what it owes as credits
+            assert received - sum(v for _, v in env.sent.items) == held + int(env.c.get_claims_total()) - env.sent.base_total, (run, act, t)
             if f["status"] == "CLOSED":
                 break
 
@@ -1953,16 +1976,16 @@ def test_demo_stories_hold_under_the_contract_rules(env, mod):
     res = {}
     for c in mr.CASES["cases"]:
         res[c["slug"]] = [mod._assess(t, {k: v * 1000 for k, v in f.items()}) for f in c["periods"]]
-    assert all(a["compliant"] and a["band"] == 0 for a in res["harbourline"])
-    q = res["quarrystone"]
+    assert all(a["compliant"] and a["band"] == 0 for a in res["ashcarrow"])
+    q = res["quillstrand"]
     assert q[0]["band"] == 0 and q[1]["band"] == 2 and q[1]["leverage_text"] == "3.01x" and all(a["compliant"] for a in q)
-    b = res["brightwater"][1]
+    b = res["brenthollow"][1]
     assert not b["leverage_ok"] and b["cover_ok"] and b["cash_ok"] and b["leverage_text"] == "3.75x"
     f1 = mr.CASES["cases"][2]["periods"][1]
     assert mod._cure_needed_units(t, {k: v * 1000 for k, v in f1.items()}) == 3_500_000
-    ng = res["northgate"][1]
+    ng = res["oskendale"][1]
     assert ng["leverage_ok"] and not ng["cover_ok"] and ng["cover_text"] == "3.11x"
-    assert all(a["compliant"] for a in res["fenwick"])
+    assert all(a["compliant"] for a in res["tarrowmere"])
 
 
 def test_currency_code_before_brackets(mod):
@@ -1975,7 +1998,7 @@ def test_nothing_is_logged_after_closing_at_a_shared_second(env):
     ready(env, fee_bp=0)
     run_test(env, 0, rep())
     tick(env, A + 1)
-    h = fac(env)["history"]
+    h = [x for x in fac(env)["history"] if x["what"] != "CREDIT"]
     assert h[-1]["what"] == "CLOSED" and h[-1]["at"] == A
 
 
@@ -1984,9 +2007,9 @@ def test_cure_refused_after_acceleration_before_the_deadline(env):
     draw(env, 4 * G, end(0) + 100)
     run_test(env, 1, rep(n=1, debt="45,000"))  # breach; interest left unpaid
     tick(env, end(1) + K)  # E3
-    as_lender(env, "accelerate", at=end(1) + K + 10)
-    out = cure(env, 1, 3 * G, end(1) + K + 20)
-    assert end(1) + K + 20 < deadline(1)
+    as_lender(env, "accelerate", at=end(1) + K + GR + 10)
+    out = cure(env, 1, 3 * G, end(1) + K + GR + 20)
+    assert end(1) + K + GR + 20 < deadline(1)
     assert out["ok"] is False and "no breach to cure" in out["error"]
 
 
@@ -2020,8 +2043,10 @@ def test_dot_thousands_page_gives_no_reading(env):
     ("Net finance cost/(credit)", "1,200", 1200000),
     ("Net interest expense/(benefit)", "(400)", -400000),
     ("Net interest payable/(income)", "(400)", -400000),
-    ("Interest and other (income), net", "(400)", -400000),
-    ("Net finance (income)", "(400)", -400000),
+    # one side named: a cost word is a cost whatever its brackets
+    ("Net finance (costs)", "2,000", 2000000),
+    ("Finance (charges)", "(2,000)", 2000000),
+    ("Net interest (expense)", "2,000", 2000000),
     ("Net finance (costs)/income", "(2,000)", 2000000),
     ("Finance costs (net)", "2,000", 2000000),
     ("Net finance costs (note 7)", "2,000", 2000000),
@@ -2061,8 +2086,8 @@ def test_no_remedy_after_acceleration(env):
     draw(env, 4 * G, end(0) + 100)
     run_test(env, 1, rep(n=1))
     tick(env, end(1) + K)  # E3
-    as_lender(env, "accelerate", at=end(1) + K + 10)
-    pay(env, 2 * G, end(1) + K + 20)
+    as_lender(env, "accelerate", at=end(1) + K + GR + 10)
+    pay(env, 2 * G, end(1) + K + GR + 20)
     f = fac(env)
     assert f["events"][0]["remedied_at"] == 0 and f["status"] in ("ACCELERATED", "CLOSED")
 
@@ -2112,8 +2137,6 @@ def test_prompt_asks_for_the_label_verbatim_and_flags_alternative_measures(mod):
     "Net finance costs (income tax excluded)",
     "Interest income and expense",
     "Net finance income/costs",
-    "Net finance expense",
-    "Interest expense, net",
     "Finance income",
     "Interest receivable and similar income",
     "Net finance (income)/(costs)",
@@ -2230,7 +2253,7 @@ def test_page_scan_for_decimal_commas(mod, page, flag):
 
 def test_decimal_comma_page_gives_no_reading_whatever_the_model_says(env):
     ready(env)
-    r = run_test(env, 0, rep(), page="Harbourline Logistics Ltd: EBITDA 12,5 Mio. EUR")
+    r = run_test(env, 0, rep(), page="Ashcarrow Logistics Ltd: EBITDA 12,5 Mio. EUR")
     assert r["kind"] == "NO_READING" and r["reason"] == "N2_FORMAT"
 
 
@@ -2257,3 +2280,263 @@ def test_page_scan_catches_dot_thousands_with_a_three_digit_comma_tail(mod):
 def test_slash_finance_label_with_one_side_word_gives_no_figure(mod, label):
     assert mod._finance_cost(label, 2000) is None
     assert mod._finance_cost(label.replace("/", " "), 2000) == 2000
+
+
+# ------------------------------------------------------------- final review fixes (17 Nov)
+# Payouts are credits each payee withdraws; waivers are scoped; acceleration
+# waits for grace_seconds; closed facilities report untested periods as such.
+
+
+def test_payouts_are_credits_the_payee_withdraws(env):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    assert env.c.get_claimable(env.borrower) == str(G) and env.sent.emitted_to(env.borrower) == 0
+    h = fac(env)["history"]
+    assert h[-1]["what"] == "CREDIT" and f"{G} wei to {env.borrower}" in h[-1]["note"]
+    total = int(env.c.get_claims_total())
+    env.vm.warp(iso(end(0) + 200))
+    env.vm.sender = env.bob
+    out = env.c.withdraw()
+    assert out == {"ok": True, "amount": str(G), "left": "0"}
+    assert env.sent.emitted_to(env.borrower) == G and env.c.get_claimable(env.borrower) == "0"
+    assert int(env.c.get_claims_total()) == total - G
+    with env.vm.expect_revert("nothing to withdraw"):
+        env.c.withdraw()
+
+
+def test_withdraw_pays_only_the_caller(env):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    env.vm.warp(iso(end(0) + 200))
+    env.vm.sender = env.charlie
+    with env.vm.expect_revert("nothing to withdraw"):
+        env.c.withdraw()
+    assert env.c.get_claimable(env.borrower) == str(G) and env.sent.items == []
+
+
+def test_refund_without_a_facility_is_credited(env):
+    env.vm.warp(iso(T0))
+    env.vm.sender = env.bob
+    env.vm.value = G
+    out = env.c.pay("99", 0)
+    env.vm.value = 0
+    assert out["ok"] is False and out["refunded"] == str(G)
+    assert env.c.get_claimable(env.borrower) == str(G) and env.c.get_claims_total() == str(G) and env.sent.items == []
+
+
+def test_claimable_of_a_bad_address_is_zero(env):
+    assert env.c.get_claimable("not an address") == "0"
+
+
+def test_pay_with_nothing_sent_says_so(env):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    tick(env, end(1))
+    out = pay(env, 0, end(1) + 10)
+    assert out["ok"] is False and "nothing was sent" in out["error"]
+
+
+def _breach_and_unpaid(env):
+    """Period-1 covenant breach left uncured and its interest left unpaid:
+    E3 at end(1) + K, E1 at the cure deadline."""
+    compliant0(env, max_leverage_x100=250, availability_end=M)
+    draw(env, 4 * G, end(0) + 100)
+    run_test(env, 1, rep(n=1, debt="45,000"))
+    tick(env, deadline(1))
+    codes = sorted(e["code"] for e in fac(env)["events"])
+    assert codes == ["E1", "E3"], codes
+
+
+def test_covenant_waiver_leaves_the_payment_default(env):
+    _breach_and_unpaid(env)
+    out = as_lender(env, "waive", 1, "covenant", at=deadline(1) + 60)
+    assert out["waived"] == ["covenant breach", "E1"] and out["status"] == "DEFAULT"
+    f = fac(env)
+    assert [e["code"] for e in f["events"] if not e["waived_at"]] == ["E3"]
+    e3 = next(e for e in f["events"] if e["code"] == "E3")
+    out = as_lender(env, "accelerate", at=e3["at"] + GR)
+    assert out["status"] in ("ACCELERATED", "CLOSED")
+
+
+def test_payment_waiver_leaves_the_covenant_default_and_the_debt(env):
+    _breach_and_unpaid(env)
+    owed = money(env, "fees_owed") + money(env, "interest_owed")
+    out = as_lender(env, "waive", 1, "payment", at=deadline(1) + 60)
+    assert out["waived"] == ["E3"] and out["status"] == "DEFAULT"
+    assert money(env, "fees_owed") + money(env, "interest_owed") >= owed > 0
+    out = as_lender(env, "waive", 1, "all", at=deadline(1) + 120)
+    assert out["waived"] == ["covenant breach", "E1"] and out["status"] == "ACTIVE"
+
+
+def test_waiver_scope_must_be_named(env):
+    _breach_and_unpaid(env)
+    with env.vm.expect_revert('scope must be "covenant", "payment" or "all"'):
+        as_lender(env, "waive", 1, "everything", at=deadline(1) + 60)
+    as_lender(env, "waive", 1, "payment", at=deadline(1) + 60)
+    with env.vm.expect_revert("nothing to waive for period 1 (scope payment)"):
+        as_lender(env, "waive", 1, "payment", at=deadline(1) + 120)
+
+
+def test_acceleration_waits_for_the_grace_period(env):
+    compliant0(env, availability_end=M)
+    draw(env, 4 * G, end(0) + 100)
+    run_test(env, 1, rep(n=1))
+    tick(env, end(1) + K)  # E3
+    with env.vm.expect_revert(f"an event of default must continue for {GR} s before acceleration"):
+        as_lender(env, "accelerate", at=end(1) + K + GR - 60)
+    out = as_lender(env, "accelerate", at=end(1) + K + GR)
+    assert out["status"] in ("ACCELERATED", "CLOSED")
+
+
+def test_on_time_payment_processed_late_still_remedies_before_acceleration(env):
+    # the borrower's payment is stamped before E3's date, but the network
+    # processes a third party's apply_time (stamped after) first: E3 falls;
+    # the lender cannot accelerate yet; the payment lands and remedies E3
+    compliant0(env, availability_end=M)
+    draw(env, 4 * G, end(0) + 100)
+    run_test(env, 1, rep(n=1))
+    tick(env, end(1))
+    due = int(fac(env)["periods"][1]["due_through"]) - money(env, "paid_fees") - money(env, "paid_interest")
+    tick(env, end(1) + K + 1)
+    assert fac(env)["status"] == "DEFAULT"
+    with env.vm.expect_revert("before acceleration"):
+        as_lender(env, "accelerate", at=end(1) + K + 2)
+    out = pay(env, due + G // 100, end(1) + K - 60)  # stamped earlier, handled at the stored time
+    assert out["ok"] is True and out["status"] == "ACTIVE"
+    assert fac(env)["events"][0]["remedied_at"] > 0
+    with env.vm.expect_revert("acceleration needs an open event of default"):
+        as_lender(env, "accelerate", at=end(1) + K + GR + 10)
+
+
+@pytest.mark.parametrize("grace,msg", [(540, "grace_seconds"), (K + 60, "grace_seconds"), (630, "whole minutes")])
+def test_grace_term_is_checked(env, grace, msg):
+    out = create(env, grace_seconds=grace)
+    assert out["ok"] is False and msg in out["error"]
+
+
+def test_closed_facility_reports_untested_periods(env):
+    _breach_and_unpaid(env)
+    e = min(x["at"] for x in fac(env)["events"])
+    as_lender(env, "accelerate", at=max(e + GR, deadline(1) + 10))
+    as_lender(env, "close", at=deadline(1) + 300)
+    f = fac(env, M + 10)
+    assert f["status"] == "CLOSED" and [p["status"] for p in f["periods"]] == ["COMPLIANT", "BREACH", "NOT_TESTED"]
+
+
+def test_cancelled_offer_reports_untested_periods(env):
+    create(env)
+    as_lender(env, "cancel", at=T0 + 60)
+    assert {p["status"] for p in fac(env)["periods"]} == {"NOT_TESTED"}
+
+
+def test_prompt_asks_for_the_page_time_zone_and_code_refuses_others(env, mod):
+    assert "never convert a time to another zone" in mod._prompt(fac(env) if False else {"company_name": "X", "currency": "EUR", "first_period_end": E0, "period_seconds": P}, 0, "page")
+    assert mod._period_matches("2026-11-16 14:00 UTC", 1794837600) is True
+    assert mod._period_matches("2026-11-16 18:00 +04:00", 1794837600) is False
+    assert mod._period_matches("2026-11-16 15:00 CET", 1794837600) is False
+
+
+def test_grace_runs_from_the_first_open_event(env):
+    _breach_and_unpaid(env)  # E3 at end(1) + K, E1 at deadline(1)
+    out = as_lender(env, "accelerate", at=deadline(1) + 60)  # E3 has run for more than GR; E1 only 60 s
+    assert out["status"] in ("ACCELERATED", "CLOSED")
+
+
+
+# ------------------------------------------------------------- second review of the fixes (17 Nov)
+
+
+@pytest.mark.parametrize("label", ["Finance (income)", "Interest (income)"])
+def test_gross_income_line_with_bracketed_word_gives_no_reading(env, label):
+    ready(env)
+    r = run_test(env, 0, rep(fin="300", fin_label=label))
+    assert r["kind"] == "NO_READING" and r["reason"] == "N2_FINANCE_LABEL"
+
+
+def test_lone_bracketed_cost_word_is_a_cost_and_can_fail_cover(env):
+    ready(env)
+    r = run_test(env, 0, rep(ebitda="15,000", fin="5,000", fin_label="LTM net finance (costs)"))
+    assert r["kind"] == "READ" and r["figures"]["ltm_net_finance_costs"] == "5000000"
+    assert r["assessment"]["cover_text"] == "3.00x" and r["assessment"]["cover_ok"] is False
+
+
+def test_strangers_refunds_are_credited_but_not_logged(env):
+    compliant0(env)
+    before = len(fac(env)["history"])
+    for i in range(5):
+        pay(env, 1, end(0) + 100 + i, who=env.charlie)
+    assert len(fac(env)["history"]) == before
+    assert env.c.get_claimable(env.other) == "5"
+
+
+def test_parties_refunds_are_logged_at_the_transaction_time(env):
+    create(env)
+    out = accept(env, value=DSRA - 1, at=T0 + 600)
+    assert out["ok"] is False
+    h = fac(env)["history"][-1]
+    assert h["what"] == "CREDIT" and h["at"] == T0 + 600 and "refused: " in h["note"]
+
+
+def test_cancel_credit_is_logged_at_the_cancel_time(env):
+    create(env)
+    as_lender(env, "cancel", at=T0 + 120)
+    h = fac(env)["history"]
+    assert [x["what"] for x in h[-2:]] == ["CANCELLED", "CREDIT"] and h[-1]["at"] == T0 + 120
+
+
+def test_withdraw_part_then_the_rest(env):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    env.vm.warp(iso(end(0) + 200))
+    env.vm.sender = env.bob
+    assert env.c.withdraw(1000) == {"ok": True, "amount": "1000", "left": str(G - 1000)}
+    with env.vm.expect_revert("amount must be 1 to"):
+        env.c.withdraw(G)
+    assert env.c.withdraw(0) == {"ok": True, "amount": str(G - 1000), "left": "0"}
+    assert env.sent.emitted_to(env.borrower) == G and env.c.get_claims_total() == str(int(env.c.get_claims_total()))
+
+
+def test_withdraw_amount_must_be_a_number(env):
+    compliant0(env)
+    draw(env, G, end(0) + 100)
+    env.vm.warp(iso(end(0) + 200))
+    env.vm.sender = env.bob
+    with env.vm.expect_revert("amount must be a whole number"):
+        env.c.withdraw("lots")
+
+
+def test_accelerated_facility_reports_untested_periods(env):
+    _breach_and_unpaid(env)
+    as_lender(env, "accelerate", at=deadline(1) + 60)
+    f = fac(env, M + K + 10)
+    assert f["status"] in ("ACCELERATED", "CLOSED") and f["periods"][2]["status"] == "NOT_TESTED"
+
+
+def test_every_logged_amount_names_its_unit(env):
+    _breach_and_unpaid(env)
+    as_lender(env, "accelerate", at=deadline(1) + 60)
+    as_lender(env, "close", at=deadline(1) + 120)
+    for x in fac(env)["history"]:
+        note = re.sub(r"0x[0-9a-fA-F]{40}", "ADDR", x["note"])
+        for m in re.finditer(r"(?<![\d\-:.])(\d{4,})(?![\d\-:.x])", note):
+            tail = note[m.end():m.end() + 4]
+            assert tail in (" wei", " EUR"), (x, m.group(0))
+
+
+
+@pytest.mark.parametrize("label", ["Net finance (income)", "Interest and other (income), net", "LTM net income",
+                                   "Net revenue", "LTM finance income, net of tax"])
+def test_income_only_labels_that_could_favour_the_borrower_give_no_reading(env, label):
+    ready(env)
+    for fin in ("2,150", "(2,150)"):
+        r = run_test(env, 0, rep(ebitda="5,000", fin=fin, fin_label=label, debt="15,000", cash="5,000"))
+        assert r["kind"] == "NO_READING" and r["reason"] == "N2_FINANCE_LABEL", (label, fin, r)
+
+
+@pytest.mark.parametrize("label,fin,cost", [("LTM net interest income", "300", -300000),
+                                            ("Interest receivable, net", "(300)", 300000),
+                                            ("Net financing income", "300", -300000)])
+def test_net_finance_income_lines_are_read_as_printed(env, label, fin, cost):
+    ready(env)
+    r = run_test(env, 0, rep(fin=fin, fin_label=label))
+    assert r["kind"] == "READ" and r["figures"]["ltm_net_finance_costs"] == str(cost)

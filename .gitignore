@@ -5,3 +5,7 @@ artifacts/
 node_modules/
 .env
 node_modules/
+tools/video/*.mp4
+tools/video/build/
+tools/video/pv_*.jpg
+tools/video/shot_*.jpg

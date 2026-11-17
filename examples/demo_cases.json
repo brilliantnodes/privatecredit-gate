@@ -12,7 +12,7 @@
     "tranche_cap_gen_bradbury": "0.4",
     "period_seconds": 3900,
     "report_seconds": 1800,
-    "cure_seconds": 1800,
+    "cure_seconds": 1800, "grace_seconds": 900,
     "year_seconds": 15600,
     "base_bp": 500,
     "grid": "250:250,300:325,350:400,*:500",
@@ -24,8 +24,8 @@
   },
   "cases": [
     {
-      "slug": "harbourline",
-      "company": "Harbourline Logistics Ltd",
+      "slug": "ashcarrow",
+      "company": "Ashcarrow Logistics Ltd",
       "currency": "EUR",
       "story": "Compliant throughout: three tranches drawn, interest paid on time, margin stays in band 1, repaid at maturity; the DSRA comes back. Displayed ratios round against the borrower (leverage up, cover down).",
       "styles": ["table", "table", "table"],
@@ -36,8 +36,8 @@
       ]
     },
     {
-      "slug": "quarrystone",
-      "company": "Quarrystone Materials plc",
+      "slug": "quillstrand",
+      "company": "Quillstrand Materials plc",
       "currency": "EUR",
       "story": "Reports in prose only. Leverage rises from 2.45x to 3.01x, so the margin steps from band 1 to band 3 at the period-1 window close.",
       "styles": ["prose", "prose", "prose"],
@@ -48,8 +48,8 @@
       ]
     },
     {
-      "slug": "brightwater",
-      "company": "Brightwater Foods SA",
+      "slug": "brenthollow",
+      "company": "Brenthollow Foods SA",
       "currency": "EUR",
       "story": "Period-1 leverage 3.75x breaches the 3.50x covenant; the borrower pays an equity cure before the deadline and the facility returns to ACTIVE.",
       "styles": ["table", "table", "table"],
@@ -60,8 +60,8 @@
       ]
     },
     {
-      "slug": "northgate",
-      "company": "Northgate Retail Group",
+      "slug": "oskendale",
+      "company": "Oskendale Retail Group",
       "currency": "EUR",
       "story": "Period-1 interest cover 3.11x breaches the 4.00x minimum; a cure cannot fix cover, nothing is waived, E1 falls at the cure deadline, the lender accelerates, the DSRA is applied and the rest is written off.",
       "styles": ["table", "table", "table"],
@@ -72,8 +72,8 @@
       ]
     },
     {
-      "slug": "fenwick",
-      "company": "Fenwick Aerospace Components",
+      "slug": "tarrowmere",
+      "company": "Tarrowmere Aerospace Components",
       "currency": "EUR",
       "story": "Draws before period 1. The period-1 page first leaves out the units (no reading, N2), then says the report is not yet published; the window closes with no reading, the top band applies, E2 falls and the lender waives it.",
       "styles": ["table", "units_missing", "table"],

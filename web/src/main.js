@@ -119,6 +119,16 @@ async function drawCards() {
     box.append(card);
     read("get_facility", [ex.id, nowS()]).then((f) => setBadge(st, f.status)).catch(() => (st.textContent = "?"));
   }
+  if ((NET.withdrawals || []).length) {
+    // On this network the five facilities share two wallets, which withdrew
+    // what the facilities credited them once, at the end of the run.
+    const p = el("p", "small", "Withdrawals at the end of the run: ");
+    NET.withdrawals.forEach(([label, hash], i) => {
+      if (i) p.append(" · ");
+      p.append(el("span", null, `${label} `), link(`${EXPLORER_BASE}/tx/${hash}`, `${hash.slice(0, 10)}…`));
+    });
+    box.after(p);
+  }
 }
 
 function setBadge(node, status) {
@@ -181,6 +191,7 @@ const PERIOD_STATUS = {
   CURED: "Breach cured",
   WAIVED: "Waived by the lender",
   MISSING: "No official reading (missing)",
+  NOT_TESTED: "Not tested: facility closed or accelerated",
 };
 
 function render(f) {
@@ -201,7 +212,7 @@ function render(f) {
     ["Payoff now", gen(m.payoff)],
     ["Paid: fees / interest / principal", `${gen(m.paid_fees)} / ${gen(m.paid_interest)} / ${gen(m.paid_principal)}`],
     ["Default interest accrued", gen(m.default_interest_accrued)],
-    ["Margin now", `band ${f.pricing.band}, ${bp(f.pricing.margin_bp)} (all-in ${bp(f.pricing.rate_bp)}${f.pricing.default_interest_on ? ", default add-on on" : ""})`],
+    ["Margin now", ["CLOSED", "CANCELLED"].includes(f.status) ? `none (facility ${f.status.toLowerCase()}; last band ${f.pricing.band})` : `band ${f.pricing.band}, ${bp(f.pricing.margin_bp)} (all-in ${bp(f.pricing.rate_bp)}${f.pricing.default_interest_on ? ", default add-on on" : ""})`],
     ["Draws", f.draw.allowed ? "allowed now" : f.draw.reason],
   ]);
   const grid = t.grid.map((g) => `${g.upper_leverage_x100 ? "≤ " + x100(g.upper_leverage_x100) : "above"}: ${bp(g.margin_bp)}`).join(" · ");
@@ -213,7 +224,7 @@ function render(f) {
     ["Margin grid (by leverage)", grid],
     ["Base rate, fee, default add-on", `${bp(t.base_bp)}, ${bp(t.fee_bp)} on undrawn, ${bp(t.default_bp)}`],
     ["Periods", `${t.num_periods} of ${Math.round(t.period_seconds / 60)} min; first ends ${utcFull(t.first_period_end)}; maturity ${utcFull(t.maturity)}`],
-    ["Windows", `report ${t.report_seconds / 60} min, cure ${t.cure_seconds / 60} min; availability ends ${utcFull(t.availability_end)}`],
+    ["Windows", `report ${t.report_seconds / 60} min, cure ${t.cure_seconds / 60} min; acceleration ${t.grace_seconds / 60} min after an event; availability ends ${utcFull(t.availability_end)}`],
     ["Conversion", `1 GEN = ${eur(t.units_per_gen)}; figures rounded to EUR ${Number(t.resolution).toLocaleString("en-GB")}`],
     ["DSRA required", gen(t.dsra_required)],
   ]);
@@ -233,11 +244,7 @@ function render(f) {
     c1.append(el("strong", null, `#${p.period}`), el("br"), el("span", "small", `ends ${utc(p.end)}`), el("br"), el("span", "small", `window to ${utc(p.window_close)}`));
     tr.append(c1);
     const st = el("td");
-    // A facility that closed before a period was read leaves that period untested:
-    // the contract reports the window state, the page says what it means.
-    const untested = f.status === "CLOSED" && ["TESTING", "MISSING", "UPCOMING"].includes(p.status) && !p.official;
-    if (untested) st.append(el("span", "pill p-upcoming", "Not tested: facility closed"));
-    else st.append(el("span", `pill p-${p.status.toLowerCase()}`, PERIOD_STATUS[p.status] || p.status));
+    st.append(el("span", `pill p-${p.status === "NOT_TESTED" ? "upcoming" : p.status.toLowerCase()}`, PERIOD_STATUS[p.status] || p.status));
     if (p.attempt_count) st.append(el("br"), el("span", "small", `${p.attempt_count} test${p.attempt_count > 1 ? "s" : ""}: ${p.attempts.map((a) => a.kind + (a.reason ? " " + a.reason : "")).join(", ")}`));
     if (p.cure) st.append(el("br"), el("span", "small", `cured ${utc(p.cure.at)}: ${gen(p.cure.principal)} principal prepaid`));
     tr.append(st);
@@ -288,10 +295,31 @@ function render(f) {
   h.replaceChildren();
   for (const x of [...f.history].reverse()) {
     const li = el("li");
-    li.append(el("span", "when", utcFull(x.at)), el("strong", null, ` ${x.what.replace(/_/g, " ").toLowerCase()}`), el("span", null, x.note ? ` · ${x.note}` : ""));
+    li.append(el("span", "when", utcFull(x.at)), el("strong", null, ` ${x.what.replace(/_/g, " ").toLowerCase()}`), el("span", null, x.note ? ` · ${readableNote(x.note)}` : ""));
     h.append(li);
   }
+  drawCredits(f);
   drawActions(f);
+}
+
+// The contract logs exact wei amounts; the timeline shows them in GEN.
+function readableNote(note) {
+  return String(note).replace(/\b(\d+) wei\b/g, (_, n) => {
+    const w = BigInt(n);
+    const txt = gen(w, 6);
+    return w > 0n && txt === "0 GEN" ? "<0.000001 GEN" : txt;
+  });
+}
+
+// What the contract has credited to this facility's parties and not yet sent:
+// every payout is a credit that its owner withdraws (covering all facilities).
+async function drawCredits(f) {
+  const box = $("fac-credits");
+  if (!box) return;
+  try {
+    const [l, b] = await Promise.all([read("get_claimable", [f.lender]), read("get_claimable", [f.borrower])]);
+    box.textContent = `Credited and not yet withdrawn (all facilities): lender ${gen(l)}, borrower ${gen(b)}.`;
+  } catch { box.textContent = ""; }
 }
 
 // ----------------------------------------------------------- accounts
@@ -328,7 +356,16 @@ async function refreshBalances() {
     const r = roles[role];
     $(`${role}-bal`).textContent = "";
     if (!r) continue;
-    try { $(`${role}-bal`).textContent = `Balance: ${gen(await reader.getBalance({ address: r.address }))}`; } catch {}
+    try {
+      const [bal, claim] = await Promise.all([reader.getBalance({ address: r.address }), CONTRACT_ADDRESS ? read("get_claimable", [r.address]) : "0"]);
+      $(`${role}-bal`).textContent = `Balance: ${gen(bal)}. Credited by the contract: ${gen(claim)}.`;
+      if (BigInt(claim) > 0n) {
+        const b = el("button", "ghost", "Withdraw");
+        b.type = "button";
+        b.addEventListener("click", () => send(r, "withdraw", [], 0n, `Withdraw ${gen(claim)} (${role})`));
+        $(`${role}-bal`).append(" ", b);
+      }
+    } catch {}
   }
 }
 const acctError = (m) => { $("acct-error").textContent = m; $("acct-error").hidden = !m; };
@@ -354,7 +391,8 @@ const STEPS = [
   ["PROPOSING", "Leader works", "One validator runs the method; for a test it reads the report page now."],
   ["COMMITTING", "Validators check", "The others run it on their own and vote."],
   ["REVEALING", "Votes revealed", "Votes are opened and counted."],
-  ["ACCEPTED", "Accepted", "A majority agreed; the new state is recorded."],
+  ["ACCEPTED", "Accepted", "A majority agreed; the new state is recorded and any payout is credited."],
+  ["FINALIZED", "Finalized", "The appeal window has passed. A withdrawal's GEN reaches the wallet now."],
 ];
 const ORDER = STEPS.map((s) => s[0]);
 const FINAL_BAD = {
@@ -367,10 +405,10 @@ const statusOf = (tx) => String(tx?.statusName ?? tx?.status_name ?? "").toUpper
 function drawSteps(cur, failed) {
   const ol = $("steps");
   ol.replaceChildren();
-  const at = ORDER.indexOf(cur === "FINALIZED" ? "ACCEPTED" : cur);
+  const at = ORDER.indexOf(cur);
   STEPS.forEach(([key, title, help], i) => {
     const li = el("li");
-    li.className = failed && i >= Math.max(at, 0) ? (i === Math.max(at, 0) ? "failed" : "todo") : i < at ? "done" : i === at ? (key === "ACCEPTED" ? "done" : "now") : "todo";
+    li.className = failed && i >= Math.max(at, 0) ? (i === Math.max(at, 0) ? "failed" : "todo") : i < at ? "done" : i === at ? (key === "FINALIZED" ? "done" : "now") : "todo";
     li.append(el("strong", null, title), el("span", null, help));
     ol.append(li);
   });
@@ -399,16 +437,13 @@ async function send(who, functionName, args, value, what) {
   drawSteps("", false);
   $("life").scrollIntoView({ behavior: "smooth", block: "nearest" });
   const fire = () => who.client.writeContract({ address: CONTRACT_ADDRESS, functionName, args, value: value || 0n });
+  // Never resent automatically: if the first send reached the node, a second
+  // one would be a second transaction (a second draw, a second payment).
   let hash, err;
   try { hash = await fire(); } catch (e) { err = e; }
   if (err) {
-    $("life-note").textContent = "The network did not answer. Trying once more…";
-    await new Promise((r) => setTimeout(r, 2500));
-    try { hash = await fire(); err = null; } catch (e) { err = e; }
-  }
-  if (err) {
     drawSteps("SENT", true);
-    $("life-note").textContent = `The transaction was not sent: ${short(err)}`;
+    $("life-note").textContent = `The network did not confirm the send (${short(err)}). It may or may not have gone out, so this page does not resend it: press Reload in a minute and check the facility before trying again.`;
     busy = false;
     setButtons(true);
     return null;
@@ -431,6 +466,8 @@ async function send(who, functionName, args, value, what) {
   busy = false;
   setButtons(true);
   if (!final) { $("life-note").textContent = "Not settled after eight minutes. It may still complete; press Reload later."; return null; }
+  const refusedStep = (() => { const a = leaderAnswer(final.tx || {}); return !!(a && (a.reverted || a.ok === false)); })();
+  if (final.ok && !refusedStep && statusOf(final.tx) !== "FINALIZED") followToFinal(hash);
   if (!final.ok) { drawSteps(last, true); $("life-note").textContent = FINAL_BAD[final.st]; return null; }
   const ans = leaderAnswer(final.tx);
   if (ans && ans.reverted) {
@@ -438,7 +475,9 @@ async function send(who, functionName, args, value, what) {
     $("life-note").textContent = `The contract refused this step: ${ans.reverted}`;
   } else if (ans && ans.ok === false && ans.refunded) {
     drawSteps("REVEALING", true);
-    $("life-note").textContent = `The contract refused this step and sent the ${gen(ans.refunded)} straight back: ${ans.error}`;
+    $("life-note").textContent = `The contract refused this step and credited the ${gen(ans.refunded)} straight back to you (withdraw it any time): ${ans.error}`;
+  } else if (ans && ans.ok && ans.amount && functionName === "withdraw") {
+    $("life-note").textContent = `Accepted: ${gen(ans.amount)} is on its way. It reaches the wallet when the transaction is finalized.`;
   } else if (ans && ans.kind) {
     $("life-note").textContent = `Accepted. Outcome: ${ans.kind}${ans.reason ? " (" + ans.reason + ")" : ""}${ans.status ? "; facility " + ans.status : ""}.`;
   } else {
@@ -447,6 +486,21 @@ async function send(who, functionName, args, value, what) {
   refreshBalances();
   await refresh();
   return { hash, answer: ans };
+}
+// After acceptance, keep watching quietly until the transaction is finalized.
+async function followToFinal(hash) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < 40 * 60 * 1000) {
+    await new Promise((r) => setTimeout(r, 10000));
+    let tx;
+    try { tx = await reader.getTransaction({ hash }); } catch { continue; }
+    if (statusOf(tx) === "FINALIZED") {
+      if ($("life-hash").textContent.includes(hash)) drawSteps("FINALIZED", false);
+      refreshBalances();
+      if (current) refresh();
+      return;
+    }
+  }
 }
 function setButtons(on) {
   document.querySelectorAll("#fac-actions button, #btn-create").forEach((b) => (b.disabled = !on));
@@ -493,8 +547,8 @@ function drawActions(f) {
     }
     action("Apply time", "Runs the set-date steps up to now (window closes, deadlines, events). The result is the same whoever calls.", () => send(anyone, "apply_time", [id], 0n, "Apply time"));
   }
-  if (B && st === "OFFERED") action(`Accept: fund the DSRA (${gen(f.terms.dsra_required)})`, "The exact amount; anything else comes straight back.", () => send(B, "accept", [id], BigInt(f.terms.dsra_required), "Accept the facility"));
-  if (L && st === "OFFERED") action("Cancel the offer", "The commitment comes back to you.", () => send(L, "cancel", [id], 0n, "Cancel the offer"));
+  if (B && st === "OFFERED") action(`Accept: fund the DSRA (${gen(f.terms.dsra_required)})`, "The exact amount; anything else is credited straight back.", () => send(B, "accept", [id], BigInt(f.terms.dsra_required), "Accept the facility"));
+  if (L && st === "OFFERED") action("Cancel the offer", "The commitment is credited back to you.", () => send(L, "cancel", [id], 0n, "Cancel the offer"));
   if (B && f.draw.allowed) action("Draw", `Up to ${gen(f.terms.tranche_cap)} per draw, within the undrawn amount.`, (v) => { const w = toWei(v); if (w) send(B, "draw", [id, w], 0n, `Draw ${v} GEN`); }, { placeholder: "GEN", value: "2" });
   if (B && ["ACTIVE", "BREACH", "DEFAULT", "ACCELERATED"].includes(st)) {
     const owed = BigInt(f.money.interest_owed) + BigInt(f.money.fees_owed);
@@ -517,10 +571,18 @@ function drawActions(f) {
   if (L && ["BREACH", "DEFAULT"].includes(st)) {
     for (const p of f.periods) {
       const openEv = f.events.some((e) => e.period === p.period && !e.waived_at && !e.remedied_at && e.code !== "E4");
-      if (["BREACH", "MISSING"].includes(p.status) || openEv) action(`Waive period ${p.period}`, "Returns the facility to ACTIVE for this period; recorded.", () => send(L, "waive", [id, p.period], 0n, `Waive period ${p.period}`));
+      const covEv = f.events.some((e) => e.period === p.period && !e.waived_at && !e.remedied_at && ["E1", "E2"].includes(e.code));
+      const payEv = f.events.some((e) => e.period === p.period && !e.waived_at && !e.remedied_at && e.code === "E3");
+      if (["BREACH", "MISSING"].includes(p.status) || covEv) action(`Waive the covenant, period ${p.period}`, "Its breach or missing report and its E1 or E2. A payment default stays.", () => send(L, "waive", [id, p.period, "covenant"], 0n, `Waive the covenant, period ${p.period}`));
+      if (payEv) action(`Waive the payment default, period ${p.period}`, "Its E3 only. The amount stays owed.", () => send(L, "waive", [id, p.period, "payment"], 0n, `Waive the payment default, period ${p.period}`));
+      void openEv;
     }
   }
-  if (L && st === "DEFAULT") action("Accelerate", "Undrawn commitment back to you, the DSRA applied through the waterfall, the whole loan due now.", () => send(L, "accelerate", [id], 0n, "Accelerate"));
+  if (L && st === "DEFAULT") {
+    const open = f.events.filter((e) => !e.waived_at && !e.remedied_at);
+    const from = open.length ? Math.min(...open.map((e) => e.at)) + f.terms.grace_seconds : now;
+    action("Accelerate", `${now < from ? `Possible from ${utc(from)}, once the event has continued for ${f.terms.grace_seconds / 60} min. ` : ""}Undrawn commitment credited back to you, the DSRA applied through the waterfall, the whole loan due now.`, () => send(L, "accelerate", [id], 0n, "Accelerate"));
+  }
   if (L && st === "ACCELERATED") action("Close with a write-off", "Ends this facility's record; it does not end any legal claim.", () => send(L, "close", [id], 0n, "Close with a write-off"));
 }
 
@@ -557,7 +619,11 @@ $("create").addEventListener("submit", async (e) => {
   const e0 = nextSlot();
   const m = e0 + (T.numPeriods - 1) * T.periodSeconds;
   const base = `${SITE}/reports/try/${slug}/s${e0}/`;
-  const args = [roles.borrower.address, TRY_BORROWERS[slug].company, T.currency, base, T.unitsPerGen, T.resolution, cap, e0, T.periodSeconds, T.numPeriods, T.reportSeconds, T.cureSeconds, m, T.yearSeconds, T.baseBp, T.grid, T.feeBp, T.defaultBp, T.maxLeverageX100, T.minCoverX100, T.minCash];
+  // The demo report pages exist only for a fixed range of slots: refuse to
+  // offer a facility whose pages are missing (a missing page reads as no report).
+  const okPages = await Promise.all([...Array(T.numPeriods).keys()].map((n) => fetch(`${base}period-${n}.html`, { method: "HEAD", cache: "no-store" }).then((r) => r.ok).catch(() => false)));
+  if (okPages.includes(false)) return acctError(`The demo report pages for the ${utcFull(e0)} slot are not published, so this facility could not be read. Please tell us via the GitHub repository.`);
+  const args = [roles.borrower.address, TRY_BORROWERS[slug].company, T.currency, base, T.unitsPerGen, T.resolution, cap, e0, T.periodSeconds, T.numPeriods, T.reportSeconds, T.cureSeconds, T.graceSeconds, m, T.yearSeconds, T.baseBp, T.grid, T.feeBp, T.defaultBp, T.maxLeverageX100, T.minCoverX100, T.minCash];
   const r = await send(roles.lender, "create", args, commit, `Offer a facility to ${TRY_BORROWERS[slug].company}`);
   if (!r) return;
   let id = r.answer && r.answer.ok && r.answer.id;
@@ -570,7 +636,7 @@ $("create").addEventListener("submit", async (e) => {
     store.set("pcg.mine", JSON.stringify([...(JSON.parse(store.get("pcg.mine") || "[]")), id].slice(-20)));
     openFacility(id);
   } else if (r.answer && r.answer.ok === false) {
-    $("life-note").textContent = `The contract refused the offer and sent the commitment back: ${r.answer.error}`;
+    $("life-note").textContent = `The contract refused the offer and credited the commitment back to you: ${r.answer.error}`;
   }
 });
 

@@ -79,15 +79,9 @@ def receipt_result(r):
 
 
 def write(c, addr, fn, args, value=0):
-    tx = None
-    for attempt in range(3):
-        try:
-            tx = c.write_contract(address=addr, function_name=fn, args=args, value=value)
-            break
-        except Exception:
-            if attempt == 2:
-                raise
-            time.sleep(5)
+    """One send only: if the send call fails after reaching the node, a retry
+    would be a second transaction (a second draw or payment)."""
+    tx = c.write_contract(address=addr, function_name=fn, args=args, value=value)
     return tx, receipt_result(wait(c, tx))
 
 

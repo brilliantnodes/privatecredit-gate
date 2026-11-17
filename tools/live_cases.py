@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Run the five fictional borrowers live against a deployed PrivateCreditGate.
 
-Every company and figure is fictional; only test GEN moves. Each case uses a
-fresh throwaway lender and borrower funded from Studio's faucet. All five
-facilities share one schedule, so they run side by side:
+Every company and figure is fictional; only test GEN moves. On Studio each
+case uses a fresh throwaway lender and borrower funded from Studio's faucet;
+on Bradbury (PCG_NET=bradbury) two testnet wallets play lender and borrower
+for all five. All five facilities share one schedule, so they run side by
+side:
 
   period 0 ends at E0, period 1 at E0 + P, maturity (period 2) at E0 + 2P;
   report window 30 min after each period end, cure window 30 min after that.
@@ -12,9 +14,9 @@ facilities share one schedule, so they run side by side:
 
 The report pages must already be live at
 https://privatecredit.brilliantnodes.com/reports/<slug>/<tag>/period-<n>.html
-(tools/make_reports.py <tag> <E0> 3900 --variant fenwick:1:not_published).
-Fenwick's period-1 page is replaced during its report window by a version
-without units (see swap_fenwick), which this script commits and pushes.
+(tools/make_reports.py <tag> <E0> 3900 --variant tarrowmere:1:not_published).
+Tarrowmere's period-1 page is replaced during its report window by a version
+without units (see swap_tarrowmere), which this script commits and pushes.
 """
 import json
 import os
@@ -34,7 +36,7 @@ T = CASES["terms"]
 SITE = os.environ.get("PCG_SITE", "https://privatecredit.brilliantnodes.com")
 LOCK = threading.Lock()
 RESULTS = {}
-P, R, K = T["period_seconds"], T["report_seconds"], T["cure_seconds"]
+P, R, K, GR = T["period_seconds"], T["report_seconds"], T["cure_seconds"], T["grace_seconds"]
 NET = os.environ.get("PCG_NET", "studio")
 BB = NET == "bradbury"
 COMMIT = int(float(T[f"commitment_gen_{NET}"]) * G)
@@ -44,17 +46,23 @@ SCALE = COMMIT // (10 * G) if COMMIT >= 10 * G else None  # draws are tenths of 
 GEN = lambda tenths_of_commitment: COMMIT * tenths_of_commitment // 10  # noqa: E731
 
 # ---------------------------------------------------------------- Bradbury
-# Bradbury runs through genlayer-js 2 (node), with two testnet wallets whose
-# keys stay in files outside the repo. Each wallet sends one transaction at a
-# time; payouts are external messages, so every write carries a fee budget for
-# both parties. The method's return value is read back from the contract's
-# views, not from the receipt.
-BB_JS = Path(os.environ.get("BRADBURY_JS", "/home/claude/bradbury/js2"))
-BB_KEYS = {"lender": "/home/claude/keys/bradbury_deployer.key", "borrower": "/home/claude/keys/bradbury_seller.key",
-           "tester": "/home/claude/keys/bradbury_mr.key"}
-BB_ADDR = {"lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734", "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
-           "tester": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B"}
+# Bradbury runs through genlayer-js 2 (node), with testnet wallets whose keys
+# stay in files outside the repo (paths from the environment). Each wallet
+# sends one transaction at a time. Payouts are credits, so only withdraw()
+# moves GEN out, and only that call carries a fee budget (for the caller's own
+# address). Bradbury transactions carry no return value: every result recorded
+# here is the chain's own outcome (consensus result and execution result of
+# the transaction) plus what the contract's views show changed, including the
+# facility's CREDIT log entries for refusals.
+BB_JS = Path(os.environ.get("BRADBURY_JS", str(ROOT / "tools" / "bradbury")))
+KEY_DIR = os.environ.get("BRADBURY_KEY_DIR", "/home/claude/keys")
+BB_KEYS = {"lender": f"{KEY_DIR}/bradbury_deployer.key", "borrower": f"{KEY_DIR}/bradbury_seller.key",
+           "tester": f"{KEY_DIR}/bradbury_mr.key"}
+BB_ADDR = json.loads(os.environ.get("BRADBURY_ADDRS", "{}")) or {
+    "lender": "0x77F1635B8F2eca3b7Eb46fB2534B7Fa18aCd2734", "borrower": "0xF5d92105174434618ae0f0E0C65D50Ae6d57eDb7",
+    "tester": "0x6ce1cEE581B0057C0ff313d015eCa5936DEacD2B"}
 KEY_LOCKS = {k: threading.Lock() for k in BB_KEYS}
+CREATE_LOCK = threading.Lock()
 
 
 def bb_free_role():
@@ -73,7 +81,7 @@ def bb_node(role, *args):
     env = {**os.environ, "BRADBURY_KEY_FILE": BB_KEYS[role]}
     for attempt in range(3):
         try:
-            p = subprocess.run(["node", "gl2.mjs", *args], cwd=BB_JS, capture_output=True, text=True, timeout=1800, env=env)
+            p = subprocess.run(["node", "gl.mjs", *args], cwd=BB_JS, capture_output=True, text=True, timeout=1800, env=env)
             out = p.stdout
         except subprocess.TimeoutExpired as e:
             out = (e.stdout or b"").decode() if isinstance(e.stdout, bytes) else (e.stdout or "")
@@ -88,23 +96,45 @@ def bb_node(role, *args):
     return d
 
 
-def bb_wait(role, h):
-    env = {**os.environ, "BRADBURY_KEY_FILE": BB_KEYS[role]}
-    for _ in range(120):
-        p = subprocess.run(["node", "gl2.mjs", "tx", h], cwd=BB_JS, capture_output=True, text=True, timeout=300, env=env)
-        objs = [json.loads(ln) for ln in p.stdout.splitlines() if ln.startswith("{")]
-        raw = (objs[-1].get("raw") if objs else None) or {}
-        if str(raw.get("statusName", "")) in ("ACCEPTED", "FINALIZED") or raw.get("resultName"):
+def bb_tx(h):
+    p = subprocess.run(["node", "gl.mjs", "tx", h], cwd=BB_JS, capture_output=True, text=True, timeout=300,
+                       env={**os.environ, "BRADBURY_KEY_FILE": BB_KEYS["tester"]})
+    objs = [json.loads(ln) for ln in p.stdout.splitlines() if ln.startswith("{")]
+    return (objs[-1].get("raw") if objs else None) or {}
+
+
+NOTHING_STORED = ("UNDETERMINED", "LEADER_TIMEOUT", "VALIDATORS_TIMEOUT", "CANCELED")
+
+
+def bb_decided(raw):
+    """Decided: accepted or finalized with a consensus result, or ended with
+    nothing stored (validators disagreed, a timeout, or cancelled)."""
+    st = str(raw.get("statusName", ""))
+    return st in NOTHING_STORED or (st in ("ACCEPTED", "FINALIZED") and raw.get("resultName") not in (None, "", "IDLE"))
+
+
+def bb_wait(role, h, final=False):
+    """Wait until the transaction is decided (a consensus result other than
+    IDLE), or finalized if asked."""
+    for _ in range(180):
+        raw = bb_tx(h)
+        if (str(raw.get("statusName")) == "FINALIZED") if final else bb_decided(raw):
             return {"ok": True, "hash": h, "raw": raw}
-        time.sleep(15)
-    return {"ok": False, "hash": h, "error": "still pending after 30 minutes"}
+        time.sleep(10)
+    return {"ok": False, "hash": h, "error": "not decided after 30 minutes", "raw": bb_tx(h)}
 
 
-def bb_write(role, addr, fn, args, value=0):
+def bb_write(role, addr, fn, args, value=0, payees=""):
     with KEY_LOCKS[role]:
-        d = bb_node(role, "write", addr, fn, json.dumps(args, default=str), str(value), f"{BB_ADDR['lender']},{BB_ADDR['borrower']}")
+        d = bb_node(role, "write", addr, fn, json.dumps(args, default=str), str(value), payees)
+    h = d.get("hash")
+    if h and not bb_decided(d.get("raw") or {}):
+        d = bb_wait(role, h)
     raw = d.get("raw") or {}
-    return d.get("hash"), {"status": raw.get("resultName") or d.get("error"), "execution": raw.get("txExecutionResultName")}
+    st = str(raw.get("statusName", ""))
+    status = st if st in NOTHING_STORED else (raw.get("resultName") or d.get("error"))
+    return h, {"status": status, "execution": raw.get("txExecutionResultName"),
+               "created": raw.get("createdTimestamp"), "from": BB_ADDR[role]}
 
 
 def bb_read(addr, fn, args=None):
@@ -142,20 +172,49 @@ class Case:
             self.cl, self.lender = client()
             self.cb, self.borrower = client()
 
-    def bb_result(self, fn, args, value):
-        """On Bradbury the outcome is read back from the views."""
+    def bb_result(self, fn, args, before, r):
+        """Bradbury: what this transaction did, from the chain's outcome and
+        from what the views show changed since just before it."""
         if fn == "create":
-            n = bb_read(self.addr, "get_count")
-            f = bb_read(self.addr, "get_facility", [str(n), 0])
-            return {"ok": f["lender"].lower() == self.lender.address.lower(), "id": str(n), "dsra_required": f["terms"]["dsra_required"]}
+            n = int(bb_read(self.addr, "get_count"))
+            if not (r.get("status") == "MAJORITY_AGREE" and r.get("execution") == "FINISHED_WITH_RETURN"):
+                return {"ok": False, "chain": r.get("status"), "execution": r.get("execution"), "count": n}
+            # the new facility is the one created since `before` with this case's terms
+            for i in range(int(before) + 1, n + 1):
+                f = bb_read(self.addr, "get_facility", [str(i), 0])
+                t = f["terms"]
+                if (f["lender"].lower() == self.lender.address.lower() and t["company_name"] == self.c["company"]
+                        and t["report_base_url"].endswith(f"/{self.slug}/{self.tag}/")):
+                    return {"ok": True, "id": str(i), "dsra_required": t["dsra_required"]}
+            return {"ok": False, "error": "no new facility with this case's terms", "count": n}
         f = bb_read(self.addr, "get_facility", [self.fid, 0])
-        out = {"ok": True, "status": f["status"]}
+        new = f["history"][len(before["history"]):] if before else []
+        out = {"status": f["status"], "logged": [f"{x['what']}: {x['note']}" for x in new]}
+        refused = [x for x in new if x["what"] == "CREDIT" and "(refused: " in x["note"]]
+        if r.get("status") != "MAJORITY_AGREE" and r.get("status") != "AGREE":
+            out.update(ok=False, chain=r.get("status"))
+        elif r.get("execution") == "FINISHED_WITH_ERROR":
+            out.update(ok=False, reverted=True)
+        elif refused:
+            note = refused[-1]["note"]
+            out.update(ok=False, refunded=note.split(" wei", 1)[0], error=note.split("(refused: ", 1)[1].rsplit("); withdraw", 1)[0])
+        else:
+            out["ok"] = True
+        if fn == "draw":
+            out["principal"] = f["money"]["principal"]
         if fn == "test_period":
-            p = f["periods"][int(args[1])]
-            last = p["attempts"][-1] if p["attempts"] else {}
-            out.update(kind=last.get("kind"), reason=last.get("reason", ""), period=int(args[1]))
-            if p["official"]:
-                out["assessment"] = p["official"]["assessment"]
+            n = int(args[1])
+            pb, pa = before["periods"][n], f["periods"][n]
+            out["period"] = n
+            mine = [a for a in pa["attempts"] if r.get("created") and a["at"] == int(r["created"])]
+            if pa["attempt_count"] > pb["attempt_count"] and (mine or not r.get("created")):
+                last = mine[-1] if mine else pa["attempts"][-1]
+                out.update(kind=last.get("kind"), reason=last.get("reason", ""))
+                if pa["official"] and not pb["official"]:
+                    out["assessment"] = pa["official"]["assessment"]
+                    out["figures"] = pa["official"]["figures"]
+            else:
+                out.update(kind=None, reason="")
         return out
 
     def e(self, n):
@@ -166,20 +225,20 @@ class Case:
             until(at)
         if BB:
             if fn == "create":
-                with KEY_LOCKS["lender"]:
-                    d = bb_node("lender", "write", self.addr, fn, json.dumps(args, default=str), str(value), f"{BB_ADDR['lender']},{BB_ADDR['borrower']}")
-                    raw = d.get("raw") or {}
-                    tx, r = d.get("hash"), {"status": raw.get("resultName") or d.get("error")}
-                    res = self.bb_result(fn, args, value)
+                with CREATE_LOCK:  # the new id is read back as get_count
+                    count0 = bb_read(self.addr, "get_count")
+                    tx, r = bb_write(who, self.addr, fn, args, value=value)
+                    res = self.bb_result(fn, args, count0, r)
             else:
-                tx, r = bb_write(who, self.addr, fn, args, value=value)
-                res = self.bb_result(fn, args, value)
+                before = self.view()
+                tx, r = bb_write(who, self.addr, fn, args, value=value, payees=BB_ADDR[who] if fn == "withdraw" else "")
+                res = self.bb_result(fn, args, before, r)
         else:
             c = self.cl if who == "lender" else self.cb
             tx, r = write(c, self.addr, fn, args, value=value)
             res = r["result"]
-        self.rec["steps"].append({"label": label, "fn": fn, "tx": tx, "status": r["status"], "result": res,
-                                  "at": int(time.time())})
+        self.rec["steps"].append({"label": label, "fn": fn, "tx": tx, "status": r["status"], "execution": r.get("execution"),
+                                  "created": r.get("created"), "from": r.get("from"), "result": res, "at": int(time.time())})
         log(self.slug, f"{label}: {r['status']} {json.dumps(res, default=str)[:300]}")
         with LOCK:
             RESULTS[self.slug] = self.rec
@@ -233,7 +292,7 @@ class Case:
         base = f"{SITE}/reports/{self.slug}/{self.tag}/"
         m = self.e(CASES["num_periods"] - 1)
         args = [self.borrower.address, self.c["company"], T["currency"], base, UPG, T["resolution"], CAP, self.e0, P,
-                CASES["num_periods"], R, K, m, T["year_seconds"], T["base_bp"], T["grid"], T["fee_bp"], T["default_bp"],
+                CASES["num_periods"], R, K, GR, m, T["year_seconds"], T["base_bp"], T["grid"], T["fee_bp"], T["default_bp"],
                 T["max_leverage_x100"], T["min_cover_x100"], T["min_cash"]]
         res = self.step("Offer the facility (commitment deposited)", "lender", "create", args, value=COMMIT,
                         expect=lambda r: r.get("ok") is True)
@@ -241,9 +300,9 @@ class Case:
         self.rec["id"] = self.fid
         self.rec["lender"], self.rec["borrower"] = self.lender.address, self.borrower.address
         dsra = int(res["dsra_required"])
-        if self.slug == "harbourline" and not BB:
+        if self.slug == "ashcarrow":
             # Evidence that a refused payable call refunds: the wrong DSRA comes straight back.
-            self.step("Accept with the wrong DSRA (refused, refunded)", "borrower", "accept", [self.fid], value=dsra - 1,
+            self.step("Accept with the wrong DSRA (refused, credited back)", "borrower", "accept", [self.fid], value=dsra - 1,
                       expect=lambda r: r.get("ok") is False and r.get("refunded") == str(dsra - 1))
         self.step("Accept: fund the DSRA", "borrower", "accept", [self.fid], value=dsra,
                   expect=lambda r: r.get("ok") is True)
@@ -252,6 +311,10 @@ class Case:
         try:
             self.open()
             getattr(self, "story_" + self.slug)()
+            if not BB:  # Bradbury's shared wallets withdraw once, at the end of the run
+                for who in ("lender", "borrower"):
+                    if int(read(self.cb, self.addr, "get_claimable", [getattr(self, who).address])) > 0:
+                        self.step(f"Withdraw credits ({who})", who, "withdraw", [], expect=lambda r: r.get("ok") is True)
             f = self.view()
             self.rec["final"] = {"status": f["status"], "closed_reason": f["closed_reason"], "money": f["money"],
                                  "events": f["events"], "periods": [p["status"] for p in f["periods"]],
@@ -266,32 +329,32 @@ class Case:
 
     # ------------------------------------------------------------ stories
 
-    def story_harbourline(self):
+    def story_ashcarrow(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw tranche 1", "borrower", "draw", [self.fid, GEN(4)])
-        self.step("Draw tranche 2", "borrower", "draw", [self.fid, GEN(4)])
+        self.step("Draw tranche 1", "borrower", "draw", [self.fid, GEN(4)], expect=lambda r: r.get("ok") is True)
+        self.step("Draw tranche 2", "borrower", "draw", [self.fid, GEN(4)], expect=lambda r: r.get("ok") is True)
         self.pay_due(1, e(1) + 90)
         self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
-        self.step("Draw tranche 3", "borrower", "draw", [self.fid, GEN(2)])
+        self.step("Draw tranche 3", "borrower", "draw", [self.fid, GEN(2)], expect=lambda r: r.get("ok") is True)
         self.test(2, e(2) + 60, retry_until=e(2) + R - 300)
         self.pay_off(e(2) + 240)
 
-    def story_quarrystone(self):
+    def story_quillstrand(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw", "borrower", "draw", [self.fid, GEN(4)])
+        self.step("Draw", "borrower", "draw", [self.fid, GEN(4)], expect=lambda r: r.get("ok") is True)
         self.pay_due(1, e(1) + 90)
         self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
         self.step("Apply time after window close 1 (margin steps up)", "borrower", "apply_time", [self.fid], at=e(1) + R + 60)
         self.test(2, e(2) + 60, retry_until=e(2) + R - 300)
         self.pay_off(e(2) + 240)
 
-    def story_brightwater(self):
+    def story_brenthollow(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw tranche 1", "borrower", "draw", [self.fid, GEN(4)])
-        self.step("Draw tranche 2", "borrower", "draw", [self.fid, GEN(4)])
+        self.step("Draw tranche 1", "borrower", "draw", [self.fid, GEN(4)], expect=lambda r: r.get("ok") is True)
+        self.step("Draw tranche 2", "borrower", "draw", [self.fid, GEN(4)], expect=lambda r: r.get("ok") is True)
         self.pay_due(1, e(1) + 90)
         res = self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
         if res.get("status") != "BREACH":
@@ -300,20 +363,19 @@ class Case:
         q = self.quote(1, at)
         self.rec["cure_quote"] = q
         log(self.slug, f"cure quote {q}")
-        if not BB:
-            small = int(q["wei"]) // 2
-            self.step("Cure too small (refused, refunded)", "borrower", "cure", [self.fid, 1], value=small,
-                      expect=lambda r: r.get("ok") is False and r.get("refunded") == str(small))
+        small = int(q["wei"]) // 2
+        self.step("Cure too small (refused, credited back)", "borrower", "cure", [self.fid, 1], value=small,
+                  expect=lambda r: r.get("ok") is False and r.get("refunded") == str(small))
         until(at)
         self.step("Equity cure (quote plus a cushion that comes back)", "borrower", "cure", [self.fid, 1],
                   value=int(q["wei"]) + COMMIT // 100, expect=lambda r: r.get("ok") is True and r.get("status") == "ACTIVE")
         self.test(2, e(2) + 60, retry_until=e(2) + R - 300)
         self.pay_off(e(2) + 240)
 
-    def story_northgate(self):
+    def story_oskendale(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw", "borrower", "draw", [self.fid, GEN(4)])
+        self.step("Draw", "borrower", "draw", [self.fid, GEN(4)], expect=lambda r: r.get("ok") is True)
         self.pay_due(1, e(1) + 90)
         res = self.test(1, e(1) + 150, retry_until=e(1) + R - 300)
         if res.get("status") != "BREACH":
@@ -324,23 +386,23 @@ class Case:
         d1 = e(1) + R + K
         self.step("Apply time at the cure deadline (E1 falls)", "lender", "apply_time", [self.fid], at=d1 + 30,
                   expect=lambda r: r.get("status") == "DEFAULT")
-        self.step("Accelerate (undrawn back, DSRA applied)", "lender", "accelerate", [self.fid], at=d1 + 120,
-                  expect=lambda r: r.get("ok") is True)
-        self.step("Close with a write-off", "lender", "close", [self.fid], at=d1 + 300,
+        self.step("Accelerate after the grace period (undrawn credited back, DSRA applied)", "lender", "accelerate", [self.fid],
+                  at=d1 + GR + 60, expect=lambda r: r.get("ok") is True)
+        self.step("Close with a write-off", "lender", "close", [self.fid], at=d1 + GR + 240,
                   expect=lambda r: r.get("ok") is True)
 
-    def story_fenwick(self):
+    def story_tarrowmere(self):
         e = self.e
         self.test(0, e(0) + 60, retry_until=e(0) + R - 300)
-        self.step("Draw", "borrower", "draw", [self.fid, GEN(2)])
+        self.step("Draw", "borrower", "draw", [self.fid, GEN(2)], expect=lambda r: r.get("ok") is True)
         self.pay_due(1, e(1) + 90)
         self.test(1, e(1) + 150, want="NOT_PUBLISHED", retry_until=e(1) + 900)
-        swap_fenwick(self.tag, self.e0)
+        swap_tarrowmere(self.tag, self.e0)
         self.test(1, e(1) + 900, want="NO_READING", retry_until=e(1) + R - 120)
         d1 = e(1) + R + K
         self.step("Apply time at the cure deadline (E2 falls)", "lender", "apply_time", [self.fid], at=d1 + 30,
                   expect=lambda r: r.get("status") == "DEFAULT")
-        self.step("Lender waives period 1", "lender", "waive", [self.fid, 1], at=d1 + 120,
+        self.step("Lender waives the covenant for period 1", "lender", "waive", [self.fid, 1, "covenant"], at=d1 + 120,
                   expect=lambda r: r.get("ok") is True and r.get("status") == "ACTIVE")
         self.test(2, e(2) + 60, retry_until=e(2) + R - 300)
         self.pay_off(e(2) + 240)
@@ -349,29 +411,57 @@ class Case:
 SWAP_LOCK = threading.Lock()
 
 
-def swap_fenwick(tag, e0):
-    """Publish Fenwick's period-1 report without units (replacing the
+def swap_tarrowmere(tag, e0):
+    """Publish Tarrowmere's period-1 report without units (replacing the
     not-yet-published notice), as a new commit, and wait for it to be live."""
     with SWAP_LOCK:
-        subprocess.run([sys.executable, str(ROOT / "tools" / "make_reports.py"), tag, str(e0), str(P), "--only", "fenwick"],
+        subprocess.run([sys.executable, str(ROOT / "tools" / "make_reports.py"), tag, str(e0), str(P), "--only", "tarrowmere"],
                        check=True, cwd=ROOT, capture_output=True)
         subprocess.run([sys.executable, str(ROOT / "tools" / "sync_reports.py")], check=True, cwd=ROOT, capture_output=True)
         subprocess.run(["git", "add", "-A", "web/public/reports", "docs/reports"], check=True, cwd=ROOT)
-        subprocess.run(["git", "commit", "-q", "-m", f"Demo: Fenwick publishes its period-1 report ({tag}), without units"],
+        subprocess.run(["git", "commit", "-q", "-m", f"Demo: Tarrowmere publishes its period-1 report ({tag}), without units"],
                        check=True, cwd=ROOT)
         subprocess.run(["git", "push", "-q", "origin", "main"], check=True, cwd=ROOT)
-        log("fenwick", "period-1 page replaced (units missing); waiting for Pages")
-        url = f"{SITE}/reports/fenwick/{tag}/period-1.html"
+        log("tarrowmere", "period-1 page replaced (units missing); waiting for Pages")
+        url = f"{SITE}/reports/tarrowmere/{tag}/period-1.html"
         for _ in range(60):
             try:
                 out = subprocess.run(["curl", "-s", url], capture_output=True, text=True, timeout=30).stdout
                 if ">Amount<" in out:
-                    log("fenwick", "new page is live")
+                    log("tarrowmere", "new page is live")
                     return
             except Exception:
                 pass
             time.sleep(10)
-        log("fenwick", "new page not seen yet; the test retries")
+        log("tarrowmere", "new page not seen yet; the test retries")
+
+
+def bb_balance(a):
+    d = bb_node("tester", "balance", a)
+    return int(d["result"])
+
+
+def bb_withdraw_all():
+    """Bradbury: each wallet withdraws everything the five facilities
+    credited to it, and the GEN is seen arriving after finalization."""
+    out = []
+    for role in ("lender", "borrower", "tester"):
+        a = BB_ADDR[role]
+        claim = int(bb_read(ADDR, "get_claimable", [a]))
+        if claim <= 0:
+            continue
+        bal0 = bb_balance(a)
+        tx, r = bb_write(role, ADDR, "withdraw", [], payees=a)
+        fin = bb_wait(role, tx, final=True)
+        time.sleep(30)
+        rec = {"role": role, "address": a, "credited": str(claim), "tx": tx, "status": r["status"], "execution": r["execution"],
+               "finalized": fin.get("ok"), "claimable_after": bb_read(ADDR, "get_claimable", [a]),
+               "balance_change": str(bb_balance(a) - bal0), "note": "balance change = credit minus this transaction's fees"}
+        log("main", f"withdraw {role}: {rec}")
+        out.append(rec)
+    out.append({"contract_balance": str(bb_balance(ADDR)), "locked": bb_read(ADDR, "get_locked"),
+                "claims_total": bb_read(ADDR, "get_claims_total")})
+    return out
 
 
 def save():
@@ -391,6 +481,8 @@ if __name__ == "__main__":
         time.sleep(2)
     for th in threads:
         th.join()
+    if BB:
+        RESULTS["withdrawals"] = bb_withdraw_all()
     save()
     bad = [k for k, v in RESULTS.items() if "error" in v]
     log("main", "all cases done" + (f"; errors: {bad}" if bad else ""))

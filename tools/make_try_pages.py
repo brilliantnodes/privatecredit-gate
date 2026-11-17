@@ -3,8 +3,8 @@
 
 Two fictional borrowers, one page set per hourly slot (period 0 ends on the
 hour, UTC), for the next DAYS days:
-  saltmere  Saltmere Shipping Ltd: compliant every period
-  ridgeway  Ridgeway Foods plc: period-1 leverage 3.73x, a curable breach
+  kelvardine  Kelvardine Shipping Ltd: compliant every period
+  pellingrove  Pellingrove Foods plc: period-1 leverage 3.73x, a curable breach
 
     python tools/make_try_pages.py [days]
 
@@ -21,11 +21,11 @@ import make_reports as mr  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 P = mr.CASES["terms"]["period_seconds"]
 TRY = [
-    {"slug": "saltmere", "company": "Saltmere Shipping Ltd", "currency": "EUR", "styles": ["table"] * 3,
+    {"slug": "kelvardine", "company": "Kelvardine Shipping Ltd", "currency": "EUR", "styles": ["table"] * 3,
      "periods": [{"ltm_ebitda": 16200, "ltm_net_finance_costs": 1900, "total_debt": 36800, "cash": 7100},
                  {"ltm_ebitda": 16500, "ltm_net_finance_costs": 1950, "total_debt": 37900, "cash": 7300},
                  {"ltm_ebitda": 16900, "ltm_net_finance_costs": 2000, "total_debt": 36500, "cash": 7900}]},
-    {"slug": "ridgeway", "company": "Ridgeway Foods plc", "currency": "EUR", "styles": ["table"] * 3,
+    {"slug": "pellingrove", "company": "Pellingrove Foods plc", "currency": "EUR", "styles": ["table"] * 3,
      "periods": [{"ltm_ebitda": 13800, "ltm_net_finance_costs": 1800, "total_debt": 42500, "cash": 5100},
                  {"ltm_ebitda": 13100, "ltm_net_finance_costs": 1900, "total_debt": 54000, "cash": 5100},
                  {"ltm_ebitda": 13600, "ltm_net_finance_costs": 1900, "total_debt": 47000, "cash": 5400}]},

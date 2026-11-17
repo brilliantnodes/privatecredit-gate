@@ -1,20 +1,20 @@
-"""Write the live runs' transactions into the site config.
+"""Write a live run's facilities and transactions into the site config.
 
-    python tools/fill_config.py studio studio-1
-    python tools/fill_config.py bradbury bradbury-1 0x4170...
+    python tools/fill_config.py studio studio-2 0x...      # contract address
+    python tools/fill_config.py bradbury bradbury-2 0x...
 
-Reads examples/live/<net>-<tag>.json and fills that network's `txs` (and, for
-Bradbury, its contract and example facilities) in web/src/config.js.
+Reads examples/live/<net>-<tag>.json and sets that network's contract,
+example facilities, per-facility transactions and (Bradbury) withdrawals in
+web/src/config.js.
 
-On Bradbury a receipt can come back before the result is applied; the runner
-then tested again. Each Bradbury test is labelled from its outcome on chain: a
-repeat refused because the period already had its official reading, or a round
-where the validators disagreed and nothing was stored.
+Every covenant test is labelled with what it did. On Bradbury the label comes
+from the chain's own outcome as recorded by the runner (consensus result and
+execution result): a round where the validators disagreed stores nothing; a
+test refused because the period already had its official reading is a
+repeat sent after an early receipt.
 """
 import json
-import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -22,64 +22,58 @@ ROOT = Path(__file__).resolve().parent.parent
 CFG = ROOT / "web/src/config.js"
 
 
-def execution(h):
-    """The execution result of a Bradbury transaction, from the chain."""
-    p = subprocess.run(["node", "gl2.mjs", "tx", h], cwd="/home/claude/bradbury/js2", capture_output=True, text=True, timeout=120,
-                       env={**os.environ, "BRADBURY_KEY_FILE": "/home/claude/keys/bradbury_mr.key"})
-    raw = json.loads(p.stdout.strip().splitlines()[-1])["raw"]
-    return raw.get("resultName"), raw.get("txExecutionResultName")
+def label_for(s, read_periods):
+    label = s["label"]
+    if s["fn"] != "test_period":
+        return label
+    res = s.get("result") or {}
+    n = res.get("period")
+    if s.get("status") in ("MAJORITY_DISAGREE", "UNDETERMINED", "NO_MAJORITY", "DISAGREE"):
+        return label + " (validators disagreed: nothing stored, tested again)"
+    if s.get("status") in ("LEADER_TIMEOUT", "VALIDATORS_TIMEOUT", "CANCELED", "MAJORITY_TIMEOUT", "TIMEOUT"):
+        return label + f" ({s['status'].lower().replace('_', ' ')}: nothing stored, tested again)"
+    if s.get("execution") == "FINISHED_WITH_ERROR" or res.get("reverted"):
+        return label + (" (repeat, refused: already read)" if n in read_periods else " (refused)")
+    kind, reason = res.get("kind"), res.get("reason") or ""
+    if not kind:
+        raise SystemExit(f"{label} {s['tx']}: no outcome recorded; check by hand")
+    if kind == "READ":
+        read_periods.add(n)
+    return f"{label}: {kind}" + (f" {reason}" if reason else "")
 
 
 def main():
-    net, tag = sys.argv[1], sys.argv[2]
+    net, tag, contract = sys.argv[1], sys.argv[2], sys.argv[3]
     run = json.loads((ROOT / f"examples/live/{net}-{tag}.json").read_text())
-    txs, examples = {}, []
+    if run["address"].lower() != contract.lower():
+        raise SystemExit(f"the record is for {run['address']}, not {contract}")
+    txs, examples, withdrawals = {}, [], []
     for slug, c in run["cases"].items():
-        if not isinstance(c, dict) or "fid" not in c and not c.get("steps"):
+        if slug == "withdrawals":
+            withdrawals = [[f"Withdraw credits ({w['role']}): {int(w['credited']) / 1e18:.6f} GEN", w["tx"]] for w in c if "tx" in w]
             continue
-        fid = str(c.get("fid") or next(s["result"]["id"] for s in c["steps"] if s["fn"] == "create" and s["result"].get("ok")))
+        fid = str(c["id"])
         examples.append({"id": fid, "slug": slug, "company": c["company"]})
-        rows, seen = [], set()
-        steps = c["steps"]
-        for i, s in enumerate(steps):
-            if not s.get("tx"):
-                continue
-            label = s["label"]
-            if s["fn"] == "test_period":
-                # the outcome this test stored; on Bradbury an early receipt
-                # leaves it to the next read-back of the same period
-                kind = (s["result"] or {}).get("kind") or next(
-                    (x["result"].get("kind") for x in steps[i + 1:] if x["label"] == label and x["result"].get("kind")), None)
-                reason = (s["result"] or {}).get("reason") or ""
-                outcome = f": {kind}" + (f" {reason}" if reason else "") if kind else ""
-            if net == "bradbury" and s["fn"] == "test_period":
-                result, ex = execution(s["tx"])
-                if result == "MAJORITY_DISAGREE":
-                    label += " (validators disagreed: nothing stored, tested again)"
-                elif ex == "FINISHED_WITH_ERROR":
-                    if label not in seen:
-                        raise SystemExit(f"{slug}: first test {s['tx']} was refused; check by hand")
-                    label += " (repeat, refused: already read)"
-                elif s["fn"] == "test_period":
-                    label += outcome
-            elif s["fn"] == "test_period":
-                label += outcome
-            seen.add(s["label"])
-            rows.append([label, s["tx"]])
-        # a refused offer or accept belongs to the facility that follows
+        rows, read_periods = [], set()
+        for s in c["steps"]:
+            if s.get("tx"):
+                rows.append([label_for(s, read_periods), s["tx"]])
         txs[fid] = rows
     src = CFG.read_text()
     start = src.index(f"  {net}: {{")
     end = src.index("\n  },", start)
     block = src[start:end]
+    block = re.sub(r'contract: "[^"]*"', f'contract: "{contract}"', block)
+    ex = "examples: [\n" + "".join(
+        f'      {{ id: "{e["id"]}", slug: "{e["slug"]}", company: "{e["company"]}" }},\n' for e in examples) + "    ],"
+    block = re.sub(r"examples: \[.*?\],", ex, block, flags=re.S)
     block = re.sub(r"    txs: \{.*?\},", "    txs: " + json.dumps(txs, indent=2).replace("\n", "\n    ") + ",", block, flags=re.S)
-    if net == "bradbury":
-        block = re.sub(r'contract: "[^"]*"', f'contract: "{sys.argv[3]}"', block)
-        ex = "examples: [\n" + "".join(
-            f'      {{ id: "{e["id"]}", slug: "{e["slug"]}", company: "{e["company"]}" }},\n' for e in examples) + "    ],"
-        block = re.sub(r"examples: \[.*?\],", ex, block, flags=re.S)
+    if "withdrawals:" in block:
+        block = re.sub(r"    withdrawals: \[.*?\],", "    withdrawals: " + json.dumps(withdrawals) + ",", block, flags=re.S)
+    else:
+        block = block.replace("    txs: ", "    withdrawals: " + json.dumps(withdrawals) + ",\n    txs: ", 1)
     CFG.write_text(src[:start] + block + src[end:])
-    print(f"{net}: {len(examples)} facilities, {sum(len(v) for v in txs.values())} transactions")
+    print(f"{net}: {len(examples)} facilities, {sum(len(v) for v in txs.values())} transactions, {len(withdrawals)} withdrawals")
 
 
 if __name__ == "__main__":
