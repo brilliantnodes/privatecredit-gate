@@ -1,16 +1,89 @@
-{"source": "Bradbury testnet contract 0x4170241d2F9547EEe7FcD6fdfe6E061f5F87C67B, live run bradbury-1 (16 Nov 2026); every borrower is fictional",
- "brenthollow": {"company": "Brenthollow Foods SA", "facility": 3, "period": 1,
-   "rows": [["LTM EBITDA", "14,200"], ["LTM net finance costs", "2,100"], ["Total borrowings", "59,500"], ["Cash", "6,300"]],
-   "net_debt_m": "53.2", "ebitda_m": "14.2", "leverage": "3.75x", "limit": "3.50x", "cover": "6.76x",
-   "votes": ["disagree", "agree", "agree", "agree"], "test_tx": "0xf58fb31a4f2f34fd094b8875b34108cc71179f12e9e6518734f1c4233bf45cd1",
-   "cure_m": "3.5", "after_cure": "3.50x"},
- "quillstrand": {"company": "Quillstrand Materials plc", "before": "2.45x", "after": "3.01x", "m_before": "2.50%", "m_after": "4.00%"},
- "oskendale": {"company": "Oskendale Retail Group", "cover": "3.11x", "min_cover": "4.00x"},
- "tarrowmere": {"company": "Tarrowmere Aerospace Components"},
- "cases": [["Ashcarrow Logistics", "Compliant every period", "Repaid"],
-           ["Quillstrand Materials", "Margin up to band 3", "Repaid"],
-           ["Brenthollow Foods", "Breach, equity cure", "Repaid"],
-           ["Oskendale Retail", "Cover breach, default", "Accelerated, written off"],
-           ["Tarrowmere Aerospace", "No reading, waiver", "Repaid"]],
- "tx_studio": 56, "tx_bradbury": 59,
- "shot": "shot_facility.jpg", "shot_ratio": 2.0309, "report": "shot_report.jpg", "report_ratio": 0.8182}
+{
+ "source": "Bradbury testnet contract 0x8c17b9742700539D3A2Ec97111073e5c93A6e1f0, live run bradbury-2 (17 Nov 2026); every borrower is fictional",
+ "brenthollow": {
+  "company": "Brenthollow Foods SA",
+  "facility": 3,
+  "period": 1,
+  "rows": [
+   [
+    "LTM EBITDA",
+    "14,200"
+   ],
+   [
+    "LTM net finance costs",
+    "2,100"
+   ],
+   [
+    "Total borrowings",
+    "59,500"
+   ],
+   [
+    "Cash",
+    "6,300"
+   ]
+  ],
+  "net_debt_m": "53.2",
+  "ebitda_m": "14.2",
+  "leverage": "3.75x",
+  "limit": "3.50x",
+  "cover": "6.76x",
+  "votes": [
+   "agree",
+   "agree",
+   "agree",
+   "timeout"
+  ],
+  "test_tx": "0x3a18b4d36ef0c5bb3b645eb6c21724ee2ef41ac41ee69e2a0a6ddd03c7a19401",
+  "cure_m": "3.5",
+  "after_cure": "3.50x"
+ },
+ "quillstrand": {
+  "company": "Quillstrand Materials plc",
+  "before": "2.45x",
+  "after": "3.01x",
+  "m_before": "2.50%",
+  "m_after": "4.00%"
+ },
+ "oskendale": {
+  "company": "Oskendale Retail Group",
+  "cover": "3.11x",
+  "min_cover": "4.00x"
+ },
+ "tarrowmere": {
+  "company": "Tarrowmere Aerospace Components"
+ },
+ "cases": [
+  [
+   "Ashcarrow Logistics",
+   "Compliant every period",
+   "Repaid"
+  ],
+  [
+   "Quillstrand Materials",
+   "Margin up to band 3",
+   "Repaid"
+  ],
+  [
+   "Brenthollow Foods",
+   "Breach, equity cure",
+   "Repaid"
+  ],
+  [
+   "Oskendale Retail",
+   "Cover breach, default",
+   "Accelerated, written off"
+  ],
+  [
+   "Tarrowmere Aerospace",
+   "No reading, waiver",
+   "Repaid"
+  ]
+ ],
+ "tx_studio": 66,
+ "tx_bradbury": 63,
+ "shot": "shot_facility.jpg",
+ "shot_ratio": 2.2265,
+ "report": "shot_report.jpg",
+ "report_ratio": 0.7013,
+ "run": "bradbury-2"
+}
