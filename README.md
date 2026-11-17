@@ -6,6 +6,8 @@
 
 **Video (71 s, with voice-over):** https://privatecredit.brilliantnodes.com/video/privatecredit-demo.mp4, made from the Bradbury run by `tools/video/`: `shot.py` takes the site screenshots, `voice.py` makes the voice-over offline with Kokoro-82M (Apache-2.0), and `render2.py data.json --durations build3/durations.json --audio build3/narration.wav` renders it.
 
+**Market size.** The video calls private credit an estimated $3 trillion market. Published estimates for 2025–26 run from about $1.7 trillion for core direct lending to about $3.5 trillion for the broad private-debt universe ([Universal Asset Owners](https://www.universalassetowners.com/private-credit-market-size/)); AIMA puts 2025 at about $4.1 trillion ([AIMA, Financing the Economy 2026](https://www.aima.org/asset/1F3466D2%2D8991%2D4BD8%2DB311C8D34C205F0B/)); S&P Global notes estimates that already exceed $3 trillion ([S&P Global](https://www.spglobal.com/en/research-insights/special-reports/look-forward/partner-perspectives/unlocking-potential-ahead-with-vanguard/unlocking-the-next-stage-of-private-credit-growth)).
+
 > Test GEN only, on GenLayer Studio and Testnet Bradbury Phase 2. Every company, figure and report page is fictional (Ashcarrow Logistics Ltd, Quillstrand Materials plc, Brenthollow Foods SA, Oskendale Retail Group, Tarrowmere Aerospace Components, and for visitors' own facilities Kelvardine Shipping Ltd and Pellingrove Foods plc). Not an offer of credit. MIT licence.
 
 ## The trust problem
