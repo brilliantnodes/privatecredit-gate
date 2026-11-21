@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The weakest link in private credit is a person typing numbers: a proposal for automated covenant testing | Brilliant Nodes</title>
+<meta name="description" content="Covenant tests read from the borrower&#x27;s own published report by independent readers, with fixed rules applying the loan terms.">
+<meta property="og:title" content="The weakest link in private credit is a person typing numbers: a proposal for automated covenant testing">
+<meta property="og:description" content="Covenant tests read from the borrower&#x27;s own published report by independent readers, with fixed rules applying the loan terms.">
+<meta property="og:type" content="article">
+<style>
+  :root { --ink:#1b1d21; --muted:#5d636e; --line:#e3e5e8; --accent:#2f5bd3; --bg:#fbfbfa; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e7e8ea; --muted:#a0a6b0; --line:#2c3038; --accent:#8fb0ff; --bg:#15171b; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:18px/1.7 Georgia, "Iowan Old Style", "Times New Roman", serif; }
+  header, main, footer { max-width:720px; margin:0 auto; padding:0 22px; }
+  header { padding-top:28px; font:14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--muted); }
+  header a { color:var(--muted); text-decoration:none; }
+  header a:hover { color:var(--accent); }
+  h1 { font-size:2.1rem; line-height:1.2; margin:28px 0 8px; letter-spacing:-0.01em; }
+  h2 { font:700 1.25rem/1.3 system-ui, -apple-system, "Segoe UI", sans-serif; margin:2.2em 0 .5em; }
+  p, li { margin:.7em 0; }
+  ul, ol { padding-left:1.4em; }
+  a { color:var(--accent); overflow-wrap:anywhere; }
+  em { color:inherit; }
+  table { border-collapse:collapse; width:100%; font-size:.9em; margin:1em 0; }
+  th, td { border-bottom:1px solid var(--line); padding:.45em .5em; text-align:left; vertical-align:top; }
+  code { font-size:.85em; }
+  footer { margin-top:48px; padding-bottom:40px; border-top:1px solid var(--line);
+           font:14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--muted); }
+  footer p { margin:14px 0 0; }
+</style>
+</head>
+<body>
+<header><a href="https://privatecredit.brilliantnodes.com/">&larr; PrivateCreditGate</a> &middot; Brilliant Nodes</header>
+<main>
+<article>
+<h1>The weakest link in private credit is a person typing numbers: a proposal for automated covenant testing</h1>
+<p><em>Brilliant Nodes · November 2026</em></p>
+<h2>Where the risk sits</h2>
+<p>Banks remain the main lenders to companies, but a growing share of corporate lending now happens outside them. <strong>Private credit</strong> is the name for that segment: loans negotiated directly between an investment fund and a borrower, rather than made by a bank or raised by selling bonds on public markets. It has grown into one of the largest corners of finance: published estimates for 2025–26 range from about <strong>$1.7 trillion</strong> for core direct lending to over <strong>$3 trillion</strong> for the broader private-debt universe, depending on what is counted [1][2].</p>
+<p>A typical private loan is a <strong>facility</strong>: the lender commits a sum, and the borrower draws it in stages over time. To protect the lender, the loan agreement contains <strong>covenants</strong>, simple financial tests the borrower must keep passing, for example:</p>
+<ul>
+<li><strong>leverage</strong>: net debt must stay below, say, 3.5 times annual earnings (EBITDA);</li>
+<li><strong>interest cover</strong>: earnings must be at least, say, 4 times the interest bill;</li>
+<li><strong>minimum cash</strong>.</li>
+</ul>
+<p>Every reporting period, the borrower publishes its figures and a compliance certificate. Those figures decide three things that move real money: <strong>whether the borrower may draw more</strong>, <strong>what interest margin applies</strong> (many loans price on a leverage grid), and <strong>whether the lender may call the loan</strong>.</p>
+<h2>Why manual monitoring falls short</h2>
+<p>Today, someone at the lender, or its agent, reads each borrower's report, finds the right figures, and types them into a system. Across a portfolio of hundreds of loans this is slow, repetitive, and exactly where errors and disputes arise:</p>
+<ul>
+<li><strong>Transcription errors</strong>: a figure keyed in thousands instead of millions, or the wrong line copied.</li>
+<li><strong>Definitional disputes</strong>: which EBITDA is it (reported or adjusted)? Is debt measured with or without leases?</li>
+<li><strong>Formatting traps</strong>: "12.450" means twelve thousand four hundred and fifty in much of Europe, and twelve point four five in the UK and US.</li>
+<li><strong>Delay</strong>: margins and draw decisions wait on manual processing.</li>
+</ul>
+<p>When parties disagree about "what the report says", the dispute goes to lawyers. The monitoring step itself has changed little as the market has grown.</p>
+<h2>An alternative approach</h2>
+<p>We propose a loan facility in which the covenant test is carried out by <strong>independent machine readers</strong> of the borrower's own published report, and every consequence of the test is applied by fixed rules written into the facility.</p>
+<ol>
+<li><strong>The terms are fixed at signing</strong>, including the covenants, the margin grid, the dates of each test, and <strong>the address where each period's report will be published</strong>. By accepting, the borrower agrees which page will be read.</li>
+<li><strong>After each period, anyone can trigger the test.</strong> Several independent machines each read the report page and copy four figures exactly as printed: earnings, finance costs, total debt and cash, with their labels, scale and currency.</li>
+<li><strong>Exact agreement or nothing.</strong> A reading is recorded only if a majority of readers arrived at <strong>exactly the same four figures</strong>. If they do not agree, the report counts as unreadable, just as a defective certificate would.</li>
+<li><strong>Rules, not judgement, apply the agreement.</strong> Code computes leverage and cover by exact integer arithmetic (never rounding in the borrower's favour), sets the margin band, stops or allows draws, and records breaches.</li>
+<li><strong>Ambiguity is refused, never guessed.</strong> Figures that could be read two ways ("12.450", a decimal comma, a figure shown in two versions, a time in another time zone) produce no reading.</li>
+<li><strong>The usual remedies are built in.</strong> A borrower in breach may cure it with fresh equity before a deadline; the lender may waive a breach; if a default continues past a grace period, the lender may call the loan, and a reserve funded at signing is applied automatically. All dates are fixed in advance, so the result never depends on who acts first.</li>
+</ol>
+<p>The model's role is deliberately narrow: it copies what a human-readable page says. It never decides whether a covenant passed. For the prototype we used GenLayer, a blockchain on which a group of validators can each read a public web page and must reach the same result.</p>
+<h2>Demonstrated evidence</h2>
+<p>We ran five fictional facilities end to end on two public test networks, each telling a different story: a borrower compliant throughout; one whose margin steps up as leverage rises; one that breaches its leverage covenant and cures it with equity; one whose interest-cover breach cannot be cured, ending in default, acceleration and write-off; and one whose report is late, which the lender waives. On the second network, 63 transactions were all decided by majority agreement, and the recorded history was checked against the chain transaction by transaction. The software passes 369 automated tests, including a randomised test that keeps the books exact over random sequences of actions, and 198 of 198 deliberate breaks of the code were caught.</p>
+<h2>Directions for further research</h2>
+<ol>
+<li><strong>Confidential reporting.</strong> Most private-credit reporting is confidential, while our prototype reads public pages. It suits borrowers that already publish (listed or bond-issuing companies). Can readers verify access-controlled or encrypted reports, for example through attested data rooms or zero-knowledge proofs?</li>
+<li><strong>Definitions.</strong> Real facility agreements define EBITDA and debt with many adjustments, while our prototype uses the labels the borrower prints. Can negotiated definitions be expressed as machine-checkable rules?</li>
+<li><strong>Document formats.</strong> Many compliance certificates are PDFs or spreadsheets, not web pages. How reliable is machine reading across these formats?</li>
+<li><strong>Misreporting.</strong> No reader can detect figures that are false at source. How can automated testing be combined with audit, bank-statement data or other independent signals?</li>
+<li><strong>Fuller agreements.</strong> Real loans have cross-default, insolvency, change-of-control and information covenants that our prototype does not model. Which of these can be automated, and which must remain human judgement?</li>
+<li><strong>Portfolio use.</strong> For lenders with hundreds of facilities, the value lies in consistent, auditable monitoring. How would this integrate with existing loan-administration systems?</li>
+<li><strong>Regulatory view.</strong> Would supervisors accept machine-read covenant tests as part of a lender's monitoring controls?</li>
+</ol>
+<p>Feedback from private-credit managers, loan agents and administrators would help shape the next stage.</p>
+<h2>References and materials</h2>
+<ol>
+<li>Universal Asset Owners, <em>Private credit market size</em>: <a rel="noopener" href="https://www.universalassetowners.com/private-credit-market-size/">https://www.universalassetowners.com/private-credit-market-size/</a></li>
+<li>S&amp;P Global, <em>Unlocking the next stage of private credit growth</em>: <a rel="noopener" href="https://www.spglobal.com/en/research-insights/special-reports/look-forward/partner-perspectives/unlocking-potential-ahead-with-vanguard/unlocking-the-next-stage-of-private-credit-growth">https://www.spglobal.com/en/research-insights/special-reports/look-forward/partner-perspectives/unlocking-potential-ahead-with-vanguard/unlocking-the-next-stage-of-private-credit-growth</a></li>
+<li>Source code and full technical documentation (open source, MIT): <a rel="noopener" href="https://github.com/brilliantnodes/privatecredit-gate">https://github.com/brilliantnodes/privatecredit-gate</a></li>
+<li>Video (71 s): <a rel="noopener" href="https://www.youtube.com/watch?v=d7g2sU8bzn0">https://www.youtube.com/watch?v=d7g2sU8bzn0</a></li>
+<li>Interactive demo: <a rel="noopener" href="https://privatecredit.brilliantnodes.com">https://privatecredit.brilliantnodes.com</a></li>
+</ol>
+<p><em>Every company, figure and report in the demonstration is fictional. Test tokens only. Not an offer of credit and not investment advice.</em></p>
+</article>
+</main>
+<footer>
+<p>Written by Brilliant Nodes. Open-source prototype; test tokens only; not investment advice.
+<a href="https://privatecredit.brilliantnodes.com/">Back to PrivateCreditGate</a>.</p>
+</footer>
+</body>
+</html>
