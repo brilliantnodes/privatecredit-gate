@@ -1,6 +1,12 @@
 import "./style.css";
 import { createClient, createAccount, generatePrivateKey } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
+// Since late November 2026 GenLayer Studio refuses a transaction without a fee distribution.
+// Reads stay on genlayer-js 1; every write goes through genlayer-js 2 with a fee estimate
+// (about 0.1 test GEN deposited, the unused part refunded).
+import { createClient as createWriter, createAccount as createAccountW } from "genlayer-js-studio";
+import { studionet as studionetW } from "genlayer-js-studio/chains";
+const studioFees = async (w) => { const f = await w.estimateTransactionFees(); return { distribution: f.distribution, feeValue: f.feeValue }; };
 import { NET, NETWORKS, CONTRACT_ADDRESS, EXPLORER_BASE, REPO_URL, SITE, STORIES, TRY_TERMS, TRY_BORROWERS } from "./config.js";
 
 // Bradbury Phase 2 needs genlayer-js 2; Studio stays on genlayer-js 1, which
@@ -347,7 +353,7 @@ function tempAccount(role) {
     store.set(`pcg.temp.${role}`, key);
   }
   const account = createAccount(key);
-  setRole(role, { client: createClient({ chain: studionet, account }), address: account.address });
+  setRole(role, { client: createWriter({ chain: studionetW, account: createAccountW(key) }), address: account.address });
 }
 async function faucet(address) {
   const body = `{"jsonrpc":"2.0","id":1,"method":"sim_fundAccount","params":["${address}",100000000000000000000]}`;
@@ -440,7 +446,7 @@ async function send(who, functionName, args, value, what) {
   $("life-note").textContent = "Signing in this browser…";
   drawSteps("", false);
   $("life").scrollIntoView({ behavior: "smooth", block: "nearest" });
-  const fire = () => who.client.writeContract({ address: CONTRACT_ADDRESS, functionName, args, value: value || 0n });
+  const fire = async () => who.client.writeContract({ address: CONTRACT_ADDRESS, functionName, args, value: value || 0n, fees: await studioFees(who.client) });
   // Never resent automatically: if the first send reached the node, a second
   // one would be a second transaction (a second draw, a second payment).
   let hash, err;
